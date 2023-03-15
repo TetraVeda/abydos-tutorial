@@ -247,15 +247,15 @@ function create_witnesses() {
   log "${BLGRY}Creating witnesses...${EC}"
   log "Creating witness ${LCYAN}wan${EC}"
   kli init --name wan --salt 0AB3YW5uLXRoZS13aXRuZXNz --nopasscode \
-    --config-dir "${HK_CONFIG_DIR}" \
+    --config-dir "${CONFIG_DIR}" \
     --config-file main/wan-witness
   log "Creating witness ${LCYAN}wil${EC}"
   kli init --name wil --salt 0AB3aWxsLXRoZS13aXRuZXNz --nopasscode \
-    --config-dir "${HK_CONFIG_DIR}" \
+    --config-dir "${CONFIG_DIR}" \
     --config-file main/wil-witness
   log "Creating witness ${LCYAN}wes${EC}"
   kli init --name wes --salt 0AB3ZXNzLXRoZS13aXRuZXNz --nopasscode \
-    --config-dir "${HK_CONFIG_DIR}" \
+    --config-dir "${CONFIG_DIR}" \
     --config-file main/wes-witness
   log "${BLGRN}Finished creating witnesses${EC}"
 }
