@@ -42,6 +42,7 @@ function logv() {
   fi
 }
 
+NEXTCRED=
 ##### KERI Configuration #####
 # Names and Aliases
 EXPLORER_KEYSTORE=explorer
@@ -428,6 +429,197 @@ function create_credential_registries() {
   log ""
 }
 
+function issue_treasurehuntingjourney_credentials() {
+  log "Issue TreasureHuntingJourney credentials as welcomes"
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
+    --recipient "${RICHARD_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json
+
+  kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --poll
+
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
+    --recipient "${ELAYNE_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json
+
+  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --poll
+  log ""
+}
+
+function issue_journeymarkrequest_credentials() {
+  log "Issue JourneyMarkRequest credentials"
+  # Richard JourneyMarkRequest
+  log "Prepare ${YELLO}Richard's${EC} TreasureHuntingJourney edge."
+  # load credential ID into edge file
+  RICHARD_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-journey-edge-filter.jq
+  RICHARD_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
+  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${RICHARD_JOURNEY_EDGE_FILTER}"
+  EXPLORER_JOURNEY_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}")
+  echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${RICHARD_JOURNEY_EDGE_FILTER}" >"${RICHARD_JOURNEY_EDGE}"
+  kli saidify --file "${RICHARD_JOURNEY_EDGE}"
+
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+
+  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
+  kli vc issue --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --registry-name ${EXPLORER_REGISTRY} \
+    --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
+    --recipient "${WISEMAN_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/journey-mark-request-data-richard.json \
+    --edges @"${RICHARD_JOURNEY_EDGE}" \
+    --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+
+  kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" --poll
+  log ""
+
+  # Elayne JourneyMarkRequest
+  log "Prepare ${MAGNT}Elayne's${EC} TreasureHuntingJourney edge."
+  # load credential ID into edge file
+  ELAYNE_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
+  ELAYNE_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
+  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_JOURNEY_EDGE_FILTER}"
+  LIBRARIAN_JOURNEY_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}")
+  echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_JOURNEY_EDGE_FILTER}" >"${ELAYNE_JOURNEY_EDGE}"
+  kli saidify --file "${ELAYNE_JOURNEY_EDGE}"
+
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+
+  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
+  kli vc issue --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --registry-name ${LIBRARIAN_REGISTRY} \
+    --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
+    --recipient "${WISEMAN_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/journey-mark-request-data-elayne.json \
+    --edges @"${ELAYNE_JOURNEY_EDGE}" \
+    --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+
+  kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" --poll
+}
+
+function issue_journeymark_credentials() {
+  log "Issue JourneyMark credentials"
+  log "Prepare ${YELLO}Richard's${EC} JourneyMarkRequest edge."
+  # load credential ID into edge file
+  RICHARD_REQUEST_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-request-edge-filter.jq
+  RICHARD_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/richard-request-edge.json
+  echo "{d: \"\", request: {n: ., s: \"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\"}}" >"${RICHARD_REQUEST_EDGE_FILTER}"
+  # TODO replace this AWK line number hack with a filter to `kli vc list` in a PR.
+  EXPLORER_REQUEST_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | awk 'NR==1{print $1; exit}')
+  echo \""${EXPLORER_REQUEST_SAID}"\" | jq -f "${RICHARD_REQUEST_EDGE_FILTER}" >"${RICHARD_REQUEST_EDGE}"
+  kli saidify --file "${RICHARD_REQUEST_EDGE}"
+
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
+
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
+    --recipient "${RICHARD_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/journey-mark-data-richard.json \
+    --edges @"${RICHARD_REQUEST_EDGE}" \
+    --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
+
+  kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --schema "${JOURNEY_MARK_SCHEMA_SAID}" --poll
+  log ""
+
+  log "Prepare ${MAGNT}Elayne's${EC} JourneyMarkRequest edge."
+  # load credential ID into edge file
+  ELAYNE_REQUEST_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-request-edge-filter.jq
+  ELAYNE_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/elayne-request-edge.json
+  echo "{d: \"\", request: {n: ., s: \"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\"}}" >"${ELAYNE_REQUEST_EDGE_FILTER}"
+  # TODO replace this AWK line number hack with a filter to `kli vc list` in a PR.
+  LIBRARIAN_REQUEST_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | awk 'NR==2{print $1; exit}')
+  echo \""${LIBRARIAN_REQUEST_SAID}"\" | jq -f "${ELAYNE_REQUEST_EDGE_FILTER}" >"${ELAYNE_REQUEST_EDGE}"
+  kli saidify --file "${ELAYNE_REQUEST_EDGE}"
+
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
+
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
+    --recipient "${ELAYNE_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/journey-mark-data-elayne.json \
+    --edges @"${ELAYNE_REQUEST_EDGE}" \
+    --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
+
+  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --schema "${JOURNEY_MARK_SCHEMA_SAID}" --poll
+  log ""
+}
+
+function issue_journeycharter_credentials() {
+  log "Issue JourneyCharter credentials"
+
+  # Same rules used for both Richard and Elayne
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
+
+  # Richard JourneyCharter
+  log "Prepare ${YELLO}Richard's${EC} JourneyMark edge."
+  # load credential ID into edge file
+  CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/journey-charter-edge-filter.jq
+  RICHARD_CHARTER_EDGE=${ATHENA_DIR}/credential_edges/richard-charter-edges.json
+  # TODO replace this AWK line number hack with a filter to `kli vc list` in a PR.
+  EXPLORER_MARK_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} \
+    --said --schema "${JOURNEY_MARK_SCHEMA_SAID}" | awk 'NR==1{print $1; exit}')
+  EXPLORER_JOURNEY_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} \
+    --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | awk 'NR==1{print $1; exit}')
+  # shellcheck disable=SC2005 disable=SC2086
+  echo "$(jq --null-input \
+    --arg mark_said ${EXPLORER_MARK_SAID} --arg mark_schema ${JOURNEY_MARK_SCHEMA_SAID} \
+    --arg journey_said ${EXPLORER_JOURNEY_SAID} --arg journey_schema ${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID} \
+    -f ${CHARTER_EDGE_FILTER})" >"${RICHARD_CHARTER_EDGE}"
+  kli saidify --file "${RICHARD_CHARTER_EDGE}"
+
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyCharter Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" \
+    --recipient "${RICHARD_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/journey-charter-data-richard.json \
+    --edges @"${RICHARD_CHARTER_EDGE}" \
+    --rules @"${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
+
+  kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" --poll
+
+  # Elayne JourneyCharter
+  log "Prepare ${MAGNT}Elayne's${EC} JourneyMark edge."
+  # load credential ID into edge file
+  CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/journey-charter-edge-filter.jq
+  ELAYNE_CHARTER_EDGE=${ATHENA_DIR}/credential_edges/elayne-charter-edges.json
+  # TODO replace this AWK line number hack with a filter to `kli vc list` in a PR.
+  LIBRARIAN_MARK_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} \
+    --said --schema "${JOURNEY_MARK_SCHEMA_SAID}" | awk 'NR==1{print $1; exit}')
+  LIBRARIAN_JOURNEY_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} \
+    --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | awk 'NR==1{print $1; exit}')
+  # shellcheck disable=SC2005 disable=SC2086
+  echo "$(jq --null-input \
+    --arg mark_said ${LIBRARIAN_MARK_SAID} --arg mark_schema ${JOURNEY_MARK_SCHEMA_SAID} \
+    --arg journey_said ${LIBRARIAN_JOURNEY_SAID} --arg journey_schema ${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID} \
+    -f ${CHARTER_EDGE_FILTER})" >"${ELAYNE_CHARTER_EDGE}"
+  kli saidify --file "${ELAYNE_CHARTER_EDGE}"
+
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyCharter Credential to ${YELLO}${LIBRARIAN_ALIAS}${EC}"
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" \
+    --recipient "${ELAYNE_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/journey-charter-data-elayne.json \
+    --edges @"${ELAYNE_CHARTER_EDGE}" \
+    --rules @"${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
+
+  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" --poll
+}
+
+function issue_credentials() {
+  log "${BLGRY}Issuing Credentials...${EC}"
+  issue_treasurehuntingjourney_credentials
+  issue_journeymarkrequest_credentials
+  issue_journeymark_credentials
+  issue_journeycharter_credentials
+
+  log "Finished issuing credentials"
+
+}
+
 function check_dependencies() {
   # Checks for [sally, kli, vLEI-server] to exist locally
   # Checks whether the KASLcred Python module is installed.
@@ -499,8 +691,6 @@ function cleanup() {
   if [ $SALLY_PID != 9999999 ]; then
     log "${DGREY}Shutting down Sally Verification server${EC}"
     kill $SALLY_PID
-    log "Clearing ~/.sally"
-    rm -rfv "${HOME}"/.sally
   else
     log "${BLGRY}Sally not started${EC} so not shutting down"
   fi
@@ -541,6 +731,15 @@ function cleanup() {
     log "${BLGRY}Credential cache server not started${EC} so not shutting down."
   fi
 
+  if [ -f "./credential.json" ]; then
+    rm -v "./credential.json"
+  fi
+
+  #  clear_keystores
+  clear_keystores
+}
+
+function clear_keystores() {
   # Clean out KERI home
   log "${RED}Clearing ~/.keri${EC}"
   if [ "$VERBOSE" = true ]; then
@@ -548,26 +747,40 @@ function cleanup() {
   else
     rm -rf "${HOME}"/.keri
   fi
+
+  # Clean out Sally home
+  log "Clearing ~/.sally"
+  rm -rfv "${HOME}"/.sally
 }
 
 function main() {
-  log "Hello ${GREEN}KERI${EC} Adventurers!"
+  log "Hello ${GREEN}Abydos${EC} Adventurers!"
   log ""
   check_dependencies
   generate_credential_schemas
   read_schema_saids
-  start_vlei_server
+  if [ -n "$NEXTCRED" ]; then
+    log 'nextcred'
+    start_vlei_server
+    start_witnesses
+    read_witness_prefixes_and_configure
+    read_aliases
+    next_credential
+  else
+    start_vlei_server
+    create_witnesses
+    start_witnesses
+    read_witness_prefixes_and_configure
+    make_keystores_and_incept_kli
+    read_aliases
+    make_introductions
+    resolve_credential_oobis
+    create_credential_registries
+    issue_credentials
+  fi
   #  start_demo_witnesses
-  create_witnesses
-  start_witnesses
-  read_witness_prefixes_and_configure
   #  start_agents
-  make_keystores_and_incept_kli
-  read_aliases
-  make_introductions
-  resolve_credential_oobis
-  create_credential_registries
-  # issue_credentials
+
   #  setup_sally_verification_server
   # introduce_sally
   #  start_verification_server
@@ -580,7 +793,7 @@ function main() {
 
 trap cleanup SIGTERM EXIT
 
-while getopts ":hv" option; do
+while getopts ":hvn" option; do
   case $option in
   h)
     log "Abydos workflow script"
@@ -590,6 +803,11 @@ while getopts ":hv" option; do
   v)
     VERBOSE=true
     log "VERBOSE set to true"
+    main
+    ;;
+  n)
+    NEXTCRED=true
+    log "NEXTCRED set to true"
     main
     ;;
   \?)

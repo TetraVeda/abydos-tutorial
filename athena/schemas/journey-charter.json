@@ -57,7 +57,7 @@
                         },
                         "partySize": {
                             "description": "The size of the party embarking on this journey.",
-                            "type": "string"
+                            "type": "integer"
                         },
                         "authorizerName": {
                             "description": "The name of the authorizer who chartered the Journey.",
@@ -100,18 +100,12 @@
                                     "description": "SAID of JourneyMark ACDC schema",
                                     "type": "string",
                                     "const": ""
-                                },
-                                "o": {
-                                    "description": "Operator indicating this node is the issuer",
-                                    "type": "string",
-                                    "const": "I2I"
                                 }
                             },
                             "additionalProperties": false,
                             "required": [
                                 "n",
-                                "s",
-                                "o"
+                                "s"
                             ]
                         },
                         "journey": {
@@ -126,24 +120,19 @@
                                     "description": "SAID of TreasureHuntingJourney ACDC schema",
                                     "type": "string",
                                     "const": ""
-                                },
-                                "o": {
-                                    "description": "Operator indicating this node is the issuer",
-                                    "type": "string",
-                                    "const": "I2I"
                                 }
                             },
                             "additionalProperties": false,
                             "required": [
                                 "n",
-                                "s",
-                                "o"
+                                "s"
                             ]
                         }
                     },
                     "additionalProperties": false,
                     "required": [
                         "d",
+                        "mark",
                         "journey"
                     ]
                 }

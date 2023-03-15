@@ -21,7 +21,7 @@
     {
       "schemaName": "JourneyCharter",
       "schemaFilePath": "journey-charter.json",
-      "dependencies": ["JourneyMark"],
+      "dependencies": ["JourneyMark", "TreasureHuntingJourney"],
       "edgeName": ""
     }
   ]

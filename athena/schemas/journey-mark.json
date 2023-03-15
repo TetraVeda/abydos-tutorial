@@ -55,20 +55,25 @@
                             "type": "string",
                             "format": "date-time"
                         },
-                        "helloMessage": {
-                            "description": "Your Hello KERI message",
+                        "journeyDestination": {
+                            "description": "The destination of this treasure hunting journey",
                             "type": "string"
                         },
-                        "journeyAuth": {
-                            "description": "The journey the treasure hunters are authorized for",
+                        "gatekeeper": {
+                            "description": "The gatekeeper to present the JourneyMark to",
                             "type": "string"
+                        },
+                        "negotiatedSplit": {
+                            "description": "The negotiated split for this journey for the issuee",
+                            "type": "number"
                         }
                     },
                     "additionalProperties": false,
                     "required": [
                         "i",
-                        "helloMessage",
-                        "journeyAuth"
+                        "journeyDestination",
+                        "gatekeeper",
+                        "negotiatedSplit"
                     ]
                 }
             ]
@@ -89,29 +94,23 @@
                             "type": "string"
                         },
                         "request": {
-                            "description": "The Treasure Hunting Journey which the requester desires to embark upon.",
+                            "description": "The JourneyMarkRequest which the requester submitted as declaration of intent to travel to Abydos.",
                             "type": "object",
                             "properties": {
                                 "n": {
-                                    "description": "SAID of the Journey ACDC",
+                                    "description": "SAID of the JourneyMarkRequest ACDC",
                                     "type": "string"
                                 },
                                 "s": {
-                                    "description": "SAID of Journey ACDC schema",
+                                    "description": "SAID of JourneyMarkRequest ACDC schema",
                                     "type": "string",
                                     "const": ""
-                                },
-                                "o": {
-                                    "description": "Operator indicating this node is the issuer",
-                                    "type": "string",
-                                    "const": "I2I"
                                 }
                             },
                             "additionalProperties": false,
                             "required": [
                                 "n",
-                                "s",
-                                "o"
+                                "s"
                             ]
                         }
                     },
@@ -126,12 +125,12 @@
         "r": {
             "oneOf": [
                 {
-                    "description": "Hello KERI Rules block SAID",
+                    "description": "Rules block SAID",
                     "type": "string"
                 },
                 {
                     "$id": "",
-                    "description": "Hello KERI Rules block",
+                    "description": "Rules block",
                     "type": "object",
                     "properties": {
                         "d": {
@@ -145,7 +144,7 @@
                                 "l": {
                                     "description": "Associated legal language",
                                     "type": "string",
-                                    "const": "Usage of a Hello KERI Credential opens the way to Abydos."
+                                    "const": "Usage of a JourneyMark enables yet does not guarantee entrance to Abydos."
                                 }
                             }
                         },
@@ -156,7 +155,7 @@
                                 "l": {
                                     "description": "Associated legal language",
                                     "type": "string",
-                                    "const": "All desiring entrance into Abydos must present credentials issued by the Veniordine."
+                                    "const": "A JourneyMark indicates the issuee is granted the option of entrance to Abydos yet does not provide any other benefit."
                                 }
                             }
                         },
@@ -167,7 +166,7 @@
                                 "l": {
                                     "description": "Associated legal language",
                                     "type": "string",
-                                    "const": "It is the sole responsibility of Holders as Issuees of a Hello KERI credential to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification."
+                                    "const": "It is the sole responsibility of Holders as Issuees of a JourneyMark to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification."
                                 }
                             }
                         }
