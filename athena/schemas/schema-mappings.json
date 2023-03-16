@@ -1,0 +1,20 @@
+{
+  "mappings": [
+    {
+      "credential_type": "TreasureHuntingJourney",
+      "said": "EIxAox3KEhiQ_yCwXWeriQ3ruPWbgK94NDDkHAZCuP9l"
+    },
+    {
+      "credential_type": "JourneyMarkRequest",
+      "said": "ELc8tMg_hhsAPfVbjUBBC-giEy5440oSb9EzFBZdAxHD"
+    },
+    {
+      "credential_type": "JourneyMark",
+      "said": "EBEefH4LNQswHSrXanb-3GbjCZK7I_UCL6BdD-zwJ4my"
+    },
+    {
+      "credential_type": "JourneyCharter",
+      "said": "EEq0AkHV-i5-aCc1JMBGsd7G85HlBzI3BfyuS5lHOGjr"
+    }
+  ]
+}

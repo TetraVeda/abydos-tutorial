@@ -14,11 +14,12 @@ LOCAL_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 export CLICOLOR=1
 export LSCOLORS=GxFxCxDxBxegedabagaced
 RED="\e[31m"
-LCYAN="\e[1;46m" # Wise Man
+LCYAN="\e[1;36m" # Wise Man
 GREEN="\e[32m"
 YELLO="\e[33m" # Explorer
 MAGNT="\e[35m" # Librarian
 PURPL="\e[35m" # Gatekeeper
+LTGRN="\e[1;32m"
 LBLUE="\e[94m"
 BLRED="\e[1;31m"
 BLGRN="\e[3;32m"
@@ -42,7 +43,7 @@ function logv() {
   fi
 }
 
-NEXTCRED=
+SERVICES_ONLY=
 ##### KERI Configuration #####
 # Names and Aliases
 EXPLORER_KEYSTORE=explorer
@@ -82,6 +83,8 @@ ATHENA_DIR=${LOCAL_DIR}/athena
 CONFIG_DIR=${ATHENA_DIR}/conf
 SCHEMAS_DIR=${ATHENA_DIR}/schemas
 SCHEMA_RESULTS_DIR=${ATHENA_DIR}/saidified_schemas
+SCHEMA_MAPPING_FILTER_FILE=${SCHEMAS_DIR}/schema-mappings-filter.jq
+SCHEMA_MAPPING_FILE=${SCHEMAS_DIR}/schema-mappings.json
 WITNESS_BOOTSTRAP_OOBIS_FILENAME=witness-oobi-bootstrap
 CONTROLLER_BOOTSTRAP_FILE=${CONFIG_DIR}/keri/cf/${WITNESS_BOOTSTRAP_OOBIS_FILENAME}.json
 AGENT_CONFIG_FILENAME=agent-oobi-bootstrap
@@ -118,7 +121,7 @@ GATEKEEPER_AGENT_TCP_PORT=5628
 
 # URLs
 WAN_WITNESS_URL=http://127.0.0.1:5642
-VLEI_SERVER_URL=http://127.0.0.1:7723
+VLEI_SERVER_URL=127.0.0.1:7723
 EXPLORER_AGENT_URL=http://127.0.0.1:${EXPLORER_AGENT_HTTP_PORT}
 
 # Credential SAID variables - needed for issuance
@@ -158,6 +161,7 @@ function read_schema_saids() {
 
   log "" # Need this printf call to take care of the trailing null terminator from interfering with the next command
   saids=()
+  mappings=()
   # Load into local vars
   for i in "${said_array[@]}"; do
     SCHEMA_PARTS=($i)
@@ -167,21 +171,34 @@ function read_schema_saids() {
 
     if [[ "$CREDENTIAL_NAME" == "TreasureHuntingJourney" ]]; then
       TREASURE_HUNTING_JOURNEY_SCHEMA_SAID="$CREDENTIAL_SAID"
+      mappings+=({"TreasureHuntingJourney": $TREASURE_HUNTING_JOURNEY_SCHEMA_SAID})
 
     elif [[ "$CREDENTIAL_NAME" == "JourneyMarkRequest" ]]; then
       JOURNEY_MARK_REQUEST_SCHEMA_SAID="$CREDENTIAL_SAID"
+      mappings+=("{\"JourneyMarkRequest\": \"$JOURNEY_MARK_REQUEST_SCHEMA_SAID\"}")
 
     elif [[ "$CREDENTIAL_NAME" == "JourneyMark" ]]; then
       JOURNEY_MARK_SCHEMA_SAID="$CREDENTIAL_SAID"
+      mappings+=("{\"JourneyMark\": \"$JOURNEY_MARK_SCHEMA_SAID\"}")
 
     elif [[ "$CREDENTIAL_NAME" == "JourneyCharter" ]]; then
       JOURNEY_CHARTER_SCHEMA_SAID="$CREDENTIAL_SAID"
+      mappings+=("{\"JourneyCharter\": \"$JOURNEY_CHARTER_SCHEMA_SAID\"}")
 
     else
       log "${RED}unrecognized schema parts${EC}"
       log "${LBLUE}SCHEMA_PARTS $CREDENTIAL_SAID $CREDENTIAL_NAME${EC}"
     fi
   done
+
+  # Update mappings in schema mappings file
+  # shellcheck disable=SC2086 disable=SC2005
+  echo "$(jq --null-input \
+    --arg journey $TREASURE_HUNTING_JOURNEY_SCHEMA_SAID \
+    --arg request $JOURNEY_MARK_REQUEST_SCHEMA_SAID \
+    --arg mark $JOURNEY_MARK_SCHEMA_SAID \
+    --arg charter $JOURNEY_CHARTER_SCHEMA_SAID \
+    -f ${SCHEMA_MAPPING_FILTER_FILE})" >"${SCHEMA_MAPPING_FILE}"
 
   # Update data OOBIs in witness config file
   IFS=$'\n'
@@ -212,13 +229,41 @@ function start_vlei_server() {
   # shellcheck disable=SC2086
   vLEI-server -s ${SCHEMA_RESULTS_DIR} -c "${ATHENA_DIR}"/cache/acdc -o "${ATHENA_DIR}"/cache/oobis &
   VLEI_SERVER_PID=$!
-  waitfor ${VLEI_SERVER_URL} -t 2
+  waitfor ${VLEI_SERVER_URL} -t 3
   log "${BLGRN}Credential Cache Server started${EC}"
   log ""
 }
 
 function start_agents() {
-  kli agent start --admin-http-port 5620 --config-dir ${ATHENA_DIR}
+  log "Starting ${YELLO}${EXPLORER_KEYSTORE} agent${EC}"
+  kli agent start --insecure --admin-http-port ${EXPLORER_AGENT_HTTP_PORT} -T ${EXPLORER_AGENT_TCP_PORT} \
+    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
+    --path ${ATHENA_DIR}/agent_static &
+  EXPLORER_AGENT_PID=$!
+  waitfor localhost:${EXPLORER_AGENT_TCP_PORT} -t 1
+
+  log "Starting ${MAGNT}${LIBRARIAN_KEYSTORE} agent${EC}"
+  kli agent start --insecure --admin-http-port ${LIBRARIAN_AGENT_HTTP_PORT} -T ${LIBRARIAN_AGENT_TCP_PORT} \
+    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
+    --path ${ATHENA_DIR}/agent_static &
+  LIBRARIAN_AGENT_PID=$!
+  waitfor localhost:${LIBRARIAN_AGENT_TCP_PORT} -t 1
+
+  log "Starting ${LCYAN}${WISEMAN_KEYSTORE} agent${EC}"
+  kli agent start --insecure --admin-http-port ${WISEMAN_AGENT_HTTP_PORT} -T ${WISEMAN_AGENT_TCP_PORT} \
+    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
+    --path ${ATHENA_DIR}/agent_static &
+  WISEMAN_AGENT_PID=$!
+  waitfor localhost:${EXPLORER_AGENT_TCP_PORT} -t 1
+
+  log "Starting ${LTGRN}${GATEKEEPER_KEYSTORE} agent${EC}"
+  kli agent start --insecure --admin-http-port ${GATEKEEPER_AGENT_HTTP_PORT} -T ${GATEKEEPER_AGENT_TCP_PORT} \
+    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
+    --path ${ATHENA_DIR}/agent_static &
+  WISEMAN_AGENT_PID=$!
+  waitfor localhost:${GATEKEEPER_AGENT_TCP_PORT} -t 1
+
+  log "Agents started."
 }
 
 function start_demo_witnesses() {
@@ -324,33 +369,56 @@ function make_keystores_and_incept_kli() {
 
   # Explorer
   log "Creating ${YELLO}Explorer ${EXPLORER_ALIAS}${EC}"
-  kli init --name ${EXPLORER_KEYSTORE} --salt "${EXPLORER_SALT}" --nopasscode --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  kli init --name ${EXPLORER_KEYSTORE} --salt "${EXPLORER_SALT}" --nopasscode \
+    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   kli incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
 
   log ""
   log "Creating ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC}"
   # Librarian
-  kli init --name ${LIBRARIAN_KEYSTORE} --salt "${LIBRARIAN_SALT}" --nopasscode --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  kli init --name ${LIBRARIAN_KEYSTORE} --salt "${LIBRARIAN_SALT}" --nopasscode \
+    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   kli incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
 
   log ""
   log "Creating ${LCYAN}Wiseman ${WISEMAN_ALIAS}${EC}"
   # Wise Man
-  kli init --name ${WISEMAN_KEYSTORE} --salt "${WISEMAN_SALT}" --nopasscode --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  kli init --name ${WISEMAN_KEYSTORE} --salt "${WISEMAN_SALT}" --nopasscode \
+    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
+  log ""
+
+  log "Create ${PURPL}${GATEKEEPER_ALIAS}'s${EC} keystore\n"
+  kli init --name ${GATEKEEPER_KEYSTORE} --salt ${GATEKEEPER_SALT} --nopasscode \
+    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file ${WITNESS_INCEPTION_CONFIG_FILE}
   log ""
 }
 
-function read_aliases() {
+function read_prefixes() {
   # Read aliases into local variables for later usage in writing OOBI configuration and credentials
   log "${BLGRY}Reading in aliases...${EC}"
   RICHARD_PREFIX=$(kli status --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} | awk '/Identifier:/ {print $2}')
   ELAYNE_PREFIX=$(kli status --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} | awk '/Identifier:/ {print $2}')
   WISEMAN_PREFIX=$(kli status --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} | awk '/Identifier:/ {print $2}')
+  GATEKEEPER_PREFIX=$(kli status --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} | awk '/Identifier:/ {print $2}')
 
   log "RICHARD prefix: $RICHARD_PREFIX"
   log "ELAYNE prefix: $ELAYNE_PREFIX"
   log "WISEMAN prefix: $WISEMAN_PREFIX"
+  log "Gatekeeper prefix: $GATEKEEPER_PREFIX"
+}
+
+function start_gatekeeper_server() {
+  log "Starting Gatekeeper server..."
+  # TODO set sally home and config dir
+  sally server start --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} \
+    --web-hook http://127.0.0.1:9923 \
+    --auth "${WISEMAN_PREFIX}" \
+    --schema-mappings "${SCHEMA_MAPPING_FILE}" &
+  SALLY_PID=$!
+  waitfor localhost:9723 -t 2
+  log ""
 }
 
 function make_introductions() {
@@ -383,6 +451,26 @@ function make_introductions() {
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${WISEMAN_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
 
+  log "Tell Gatekeeper who ${WISEMAN_ALIAS} is for later presentation support"
+  kli oobi resolve --name ${GATEKEEPER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
+
+  log "${YELLO}${EXPLORER_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+  kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+
+  log ""
+
+  log "${YELLO}${LIBRARIAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+  kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+
+  log ""
+
+  log "${YELLO}${WISEMAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+  kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+
   log ""
 }
 
@@ -392,7 +480,6 @@ function resolve_credential_oobis() {
   #
   # Depends on the "said_array" variable populated in the read_schema_saids function
   log "Resolve ${BLGRN}Credential OOBIs${EC}"
-
   controllers_array=(${EXPLORER_KEYSTORE} ${LIBRARIAN_KEYSTORE} ${WISEMAN_KEYSTORE})
   for i in "${said_array[@]}"; do
     SCHEMA_PARTS=($i)
@@ -412,7 +499,7 @@ function resolve_credential_oobi() {
   CREDENTIAL_SERVER=$3
   CREDENTIAL_SAID=$4
   kli oobi resolve --name "${KEYSTORE}" --oobi-alias "${CREDENTIAL_OOBI_ALIAS}" \
-    --oobi "${CREDENTIAL_SERVER}"/oobi/"${CREDENTIAL_SAID}"
+    --oobi http://"${CREDENTIAL_SERVER}"/oobi/"${CREDENTIAL_SAID}"
 }
 
 function create_credential_registries() {
@@ -615,9 +702,14 @@ function issue_credentials() {
   issue_journeymarkrequest_credentials
   issue_journeymark_credentials
   issue_journeycharter_credentials
-
   log "Finished issuing credentials"
+}
 
+function start_webhook() {
+  log "Starting Webhook to listen for presentation events"
+  sally hook demo &
+  GATEKEEPER_WEBHOOK_PID=$!
+  waitfor localhost:9923 -t 1
 }
 
 function check_dependencies() {
@@ -735,8 +827,11 @@ function cleanup() {
     rm -v "./credential.json"
   fi
 
-  #  clear_keystores
-  clear_keystores
+  #    if [ -n "$SERVICES_ONLY" ]; then
+  #      :
+  #    else
+  #      clear_keystores
+  #    fi
 }
 
 function clear_keystores() {
@@ -759,33 +854,39 @@ function main() {
   check_dependencies
   generate_credential_schemas
   read_schema_saids
-  if [ -n "$NEXTCRED" ]; then
-    log 'nextcred'
+  if [ -n "$SERVICES_ONLY" ]; then
     start_vlei_server
+
     start_witnesses
     read_witness_prefixes_and_configure
-    read_aliases
-    next_credential
+
+    read_prefixes
+    #    start_gatekeeper_server
+    start_webhook
+
+    # place next item here
+
   else
     start_vlei_server
+
     create_witnesses
     start_witnesses
     read_witness_prefixes_and_configure
+
     make_keystores_and_incept_kli
-    read_aliases
+    read_prefixes
+    start_gatekeeper_server
+    start_webhook
+
     make_introductions
     resolve_credential_oobis
+
     create_credential_registries
     issue_credentials
   fi
   #  start_demo_witnesses
   #  start_agents
 
-  #  setup_sally_verification_server
-  # introduce_sally
-  #  start_verification_server
-  #  add_mappings
-  #  start_webhook
   # present_credential
   log "${LBLUE}Let your Journey begin${EC}!"
   waitloop
@@ -793,7 +894,7 @@ function main() {
 
 trap cleanup SIGTERM EXIT
 
-while getopts ":hvn" option; do
+while getopts ":hvs" option; do
   case $option in
   h)
     log "Abydos workflow script"
@@ -805,9 +906,9 @@ while getopts ":hvn" option; do
     log "VERBOSE set to true"
     main
     ;;
-  n)
-    NEXTCRED=true
-    log "NEXTCRED set to true"
+  s)
+    SERVICES_ONLY=true
+    log "SERVICES_ONLY set to true"
     main
     ;;
   \?)
@@ -816,4 +917,5 @@ while getopts ":hvn" option; do
     ;;
   esac
 done
+
 main
