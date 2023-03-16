@@ -45,6 +45,7 @@ function logv() {
 
 SERVICES_ONLY=
 AGENTS=false
+CLEAR_KEYSTORES=false
 ##### KERI Configuration #####
 # Names and Aliases
 EXPLORER_KEYSTORE=explorer
@@ -125,6 +126,9 @@ GATEKEEPER_AGENT_TCP_PORT=5627
 WAN_WITNESS_URL=http://127.0.0.1:5642
 VLEI_SERVER_URL=127.0.0.1:7723
 EXPLORER_AGENT_URL=http://127.0.0.1:${EXPLORER_AGENT_HTTP_PORT}
+LIBRARIAN_AGENT_URL=http://127.0.0.1:${LIBRARIAN_AGENT_HTTP_PORT}
+WISEMAN_AGENT_URL=http://127.0.0.1:${LIBRARIAN_AGENT_HTTP_PORT}
+GATEKEEPER_AGENT_URL=http://127.0.0.1:${LIBRARIAN_AGENT_HTTP_PORT}
 
 # Credential SAID variables - needed for issuance
 TREASURE_HUNTING_JOURNEY_SCHEMA_SAID=""
@@ -399,6 +403,29 @@ function make_keystores_and_incept_kli() {
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file ${WITNESS_INCEPTION_CONFIG_FILE}
   log ""
+}
+
+function make_keystores_and_incept_agent() {
+  log "Make Keystores"
+  curl -s -X POST "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${EXPLORER_ALIAS}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq
+  log ""
+  curl -s -X POST "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${LIBRARIAN_ALIAS}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq
+  log ""
+  curl -s -X POST "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${WISEMAN_ALIAS}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq
+  log ""
+  curl -s -X POST "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${GATEKEEPER_ALIAS}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq
+  log ""
+
+  log "Incept keystores"
+  curl -s -X PUT "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${EXPLORER_ALIAS}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq
+  log ""
+  curl -s -X PUT "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${LIBRARIAN_ALIAS}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq
+  log ""
+  curl -s -X PUT "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${WISEMAN_ALIAS}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq
+  log ""
+  curl -s -X PUT "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${GATEKEEPER_ALIAS}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq
+  log ""
+
 }
 
 function read_prefixes() {
@@ -851,9 +878,7 @@ function cleanup() {
     rm -v "./credential.json"
   fi
 
-  if [ -n "$SERVICES_ONLY" ]; then
-    :
-  else
+  if [ "$CLEAR_KEYSTORES" = true ]; then
     clear_keystores
   fi
 }
@@ -878,24 +903,35 @@ function main() {
   check_dependencies
   generate_credential_schemas
   read_schema_saids
-  if [ "$AGENTS" = true ]; then
+  if [ -n "$SERVICES_ONLY" ] && [ "$AGENTS" = true ]; then
+    start_vlei_server
+    start_witnesses
+    read_witness_prefixes_and_configure
+    start_agents
+    start_webhook
+
+    # place next item here
+    make_keystores_and_incept_agent
+  elif [ "$AGENTS" = true ]; then
+    log "agents setup"
     start_vlei_server
 
     create_witnesses
     start_witnesses
     read_witness_prefixes_and_configure
+    exit 0
 
-    #    make_keystores_and_incept_kli
-    #    read_prefixes
-    start_agents
-    #    start_gatekeeper_server
-    start_webhook
+    #    start_agents
+    #    start_webhook
+    #    make_keystores_and_incept_agent
+    # read_prefixes_agent
+    # start_gatekeeper_server
 
-    #    make_introductions
-    #    resolve_credential_oobis
+    # make_introductions_agent
+    # resolve_credential_oobis_agent
 
-    #    create_credential_registries
-    #    issue_credentials
+    # create_credential_registries_agent
+    # issue_credentials_agent
   elif [ -n "$SERVICES_ONLY" ]; then
     start_vlei_server
 
@@ -936,8 +972,12 @@ function main() {
 
 trap cleanup SIGTERM EXIT
 
-while getopts ":hvsa" option; do
+while getopts "h:v:s:a:c:" option; do
   case $option in
+  c)
+    CLEAR_KEYSTORES=true
+    log "CLEAR_KEYSTORES set to true"
+    ;;
   h)
     log "Abydos workflow script"
     log "workflow.sh [-v VERBOSE] [-h HELP] [-s SERVICES_ONLY] [-a AGENTS]"
@@ -950,12 +990,10 @@ while getopts ":hvsa" option; do
   s)
     SERVICES_ONLY=true
     log "SERVICES_ONLY set to true"
-    main
     ;;
   a)
     AGENTS=true
     log "Using Agents rather than the KLI to manage keystores"
-    main
     ;;
   \?)
     log "Invalid option $option"
