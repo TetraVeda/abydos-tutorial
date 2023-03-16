@@ -1,13 +1,18 @@
-# Abydos Tutorial
+# [Abydos](https://en.wikipedia.org/wiki/Abydos,_Egypt) Tutorial
 
 ## Dependencies
 - [wait-for](https://github.com/eficode/wait-for)
+- [kaslcred](https://pypi.org/project/kaslcred/) for generation of schemas
 
-# Steps
-
-## Schema Generation
-
-Use kaslcred for generation of schemas
+## Modes
+1. KLI: Use the KERI Command Line to create witnesses, controllers, and issue credentials
+```bash
+./workflow.sh
+```
+2. Agents: Use KERI Agents to create controllers and issue credentials. Uses the KLI for witness creation.
+```bash
+./workflow.sh -a
+```
 
 ## Troubleshooting
 ### Seeing the keri/cf/main directory created

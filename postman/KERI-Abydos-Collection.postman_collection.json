@@ -1,0 +1,1379 @@
+{
+	"info": {
+		"_postman_id": "ed475137-d56b-4c59-b7a8-d11360a8c619",
+		"name": "KERI Abydos Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "16367192"
+	},
+	"item": [
+		{
+			"name": "OOBIs",
+			"item": [
+				{
+					"name": "WM->EX OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{EXPLORER_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{EXPLORER_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/oobi",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM->LI OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{LIBRARIAN_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{LIBRARIAN_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/oobi",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX->WM OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{WISEMAN_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{WISEMAN_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/oobi",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI->WM OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{WISEMAN_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{WISEMAN_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/oobi",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX->GK OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{GATEKEEPER_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{GATEKEEPER_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/oobi",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI->GK OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{GATEKEEPER_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{GATEKEEPER_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/oobi",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Keystores",
+			"item": [
+				{
+					"name": "EX Initialize Keystore",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{EXPLORER_NAME}}\",\n    \"salt\": \"0ACGZkoQexMCRRl4f21Itekh\"\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/boot",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Initialize Keystore",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{LIBRARIAN_NAME}}\",\n    \"salt\": \"0ABcbj6VhID17F_wmgzsYSec\"\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/boot",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Initialize Keystore",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{WISEMAN_NAME}}\",\n    \"salt\": \"0ABuZBlF30Rn09UhoNpsPek3\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/boot",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GK Initialize Keystore",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{GATEKEEPER_NAME}}\",\n    \"salt\": \"0ACDXyMzq1Nxc4OWxtbm9fle\"\n}"
+						},
+						"url": {
+							"raw": "{{GATEKEEPER_AGENT}}/boot",
+							"host": [
+								"{{GATEKEEPER_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Unlock Agent",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{EXPLORER_NAME}}\",\n    \"salt\": \"0ACGZkoQexMCRRl4f21Itekh\"\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/boot",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Unlock Agent",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{LIBRARIAN_NAME}}\",\n    \"salt\": \"0ABcbj6VhID17F_wmgzsYSec\"\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/boot",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Unlock Agent",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{WISEMAN_NAME}}\",\n    \"salt\": \"0ABuZBlF30Rn09UhoNpsPek3\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/boot",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GK Unlock Agent",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{GATEKEEPER_NAME}}\",\n    \"salt\": \"0ACDXyMzq1Nxc4OWxtbm9fle\"\n}"
+						},
+						"url": {
+							"raw": "{{GATEKEEPER_AGENT}}/boot",
+							"host": [
+								"{{GATEKEEPER_AGENT}}"
+							],
+							"path": [
+								"boot"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Incept Alias",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Explorer Prefix is \", jsonData.d);",
+									"    pm.environment.set(\"EXPLORER_PREFIX\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"transferable\": true,\n  \"wits\": [\n    \"BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha\",\n    \"BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM\",\n    \"BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX\"\n  ],\n  \"toad\": 3,\n  \"icount\": 1,\n  \"ncount\": 1,\n  \"isith\": \"1\",\n  \"nsith\": \"1\"\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/ids/{{EXPLORER_ALIAS}}",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"ids",
+								"{{EXPLORER_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Incept Alias",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Librarian Prefix is \", jsonData.d);",
+									"    pm.environment.set(\"LIBRARIAN_PREFIX\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"transferable\": true,\n  \"wits\": [\n    \"BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha\",\n    \"BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM\",\n    \"BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX\"\n  ],\n  \"toad\": 3,\n  \"icount\": 1,\n  \"ncount\": 1,\n  \"isith\": \"1\",\n  \"nsith\": \"1\"\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/ids/{{LIBRARIAN_ALIAS}}",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"ids",
+								"{{LIBRARIAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Incept Alias",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Wiseman Prefix is \", jsonData.d);",
+									"    pm.environment.set(\"WISEMAN_PREFIX\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"transferable\": true,\n  \"wits\": [\n    \"BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha\",\n    \"BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM\",\n    \"BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX\"\n  ],\n  \"toad\": 3,\n  \"icount\": 1,\n  \"ncount\": 1,\n  \"isith\": \"1\",\n  \"nsith\": \"1\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/ids/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"ids",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GK Incept Alias",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Gatekeeper Prefix is \", jsonData.d);",
+									"    pm.environment.set(\"GATEKEEPER_PREFIX\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"transferable\": true,\n  \"wits\": [\n    \"BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha\",\n    \"BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM\",\n    \"BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX\"\n  ],\n  \"toad\": 3,\n  \"icount\": 1,\n  \"ncount\": 1,\n  \"isith\": \"1\",\n  \"nsith\": \"1\"\n}"
+						},
+						"url": {
+							"raw": "{{GATEKEEPER_AGENT}}/ids/{{GATEKEEPER_ALIAS}}",
+							"host": [
+								"{{GATEKEEPER_AGENT}}"
+							],
+							"path": [
+								"ids",
+								"{{GATEKEEPER_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Registries",
+			"item": [
+				{
+					"name": "EX Create Registry",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alias\": \"{{EXPLORER_ALIAS}}\",\n    \"baks\": [],\n    \"estOnly\": false,\n    \"name\": \"{{EXPLORER_ALIAS}}-registry\",\n    \"noBackers\": true,\n    \"toad\": 0\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/registries",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"registries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Create Registry",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alias\": \"{{LIBRARIAN_ALIAS}}\",\n    \"baks\": [],\n    \"estOnly\": false,\n    \"name\": \"{{LIBRARIAN_ALIAS}}-registry\",\n    \"noBackers\": true,\n    \"toad\": 0\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/registries",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"registries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Create Registry",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"alias\": \"{{WISEMAN_ALIAS}}\",\n    \"baks\": [],\n    \"estOnly\": false,\n    \"name\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"noBackers\": true,\n    \"toad\": 0\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/registries",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"registries"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Credentials",
+			"item": [
+				{
+					"name": "WM Issue Journey->EX",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Richard Journey Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"EXPLORER_JOURNEY_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"destination\": \"Osireion\",\n        \"treasureSplit\": \"50/50\",\n        \"partyThreshold\": 2,\n        \"journeyEndorser\": \"Ramiel\"\n    },\n    \"recipient\": \"{{EXPLORER_PREFIX}}\",\n    \"registry\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"schema\": \"{{TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}}\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Issue Journey->LI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Elayne Journey Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"LIBRARIAN_JOURNEY_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"destination\": \"Osireion\",\n        \"treasureSplit\": \"50/50\",\n        \"partyThreshold\": 2,\n        \"journeyEndorser\": \"Ramiel\"\n    },\n    \"recipient\": \"{{LIBRARIAN_PREFIX}}\",\n    \"registry\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"schema\": \"{{TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}}\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Issue Request->WM",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Richard Journey Request Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"WISEMAN_EX_JOURNEY_REQUEST_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"requester\": {\n            \"firstName\": \"Richard\",\n            \"lastName\": \"Ayris\",\n            \"nickname\": \"Dunkie\"\n        },\n        \"desiredPartySize\": 2,\n        \"desiredSplit\": 50.00\n    },\n    \"recipient\": \"{{WISEMAN_PREFIX}}\",\n    \"registry\": \"{{EXPLORER_ALIAS}}-registry\",\n    \"schema\": \"{{JOURNEY_MARK_REQUEST_SCHEMA_SAID}}\",\n    \"source\": {\n        \"d\": \"\", \n        \"journey\": {\n            \"n\": \"{{EXPLORER_JOURNEY_CRED_SAID}}\", \n            \"s\": \"{{TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}}\"\n        }\n    },\n    \"rules\": {\"d\": \"EFcPnDDBcPaRekdIRV6XGhe9G5wliUhY1YwKFVyZ-gYN\", \"usageDisclaimer\": {\"l\": \"Usage of a JourneyMarkRequest indicates the issuer assumes all risk of traveling to Abydos.\"}, \"issuanceDisclaimer\": {\"l\": \"All desiring entrance into Abydos must present JourneyMarkRequest credentials issued to the Veniordine.\"}, \"privacyDisclaimer\": {\"l\": \"It is the sole responsibility of Holders as Issuees of a JourneyMarkRequest to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification.\"}}\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/credentials/{{EXPLORER_ALIAS}}",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{EXPLORER_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Issue Request->WM",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Elayne Journey Request Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"WISEMAN_LI_JOURNEY_REQUEST_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"requester\": {\n            \"firstName\": \"Elayne\",\n            \"lastName\": \"Paxton\",\n            \"nickname\": \"Rebar\"\n        },\n        \"desiredPartySize\": 2,\n        \"desiredSplit\": 50.00\n    },\n    \"recipient\": \"{{WISEMAN_PREFIX}}\",\n    \"registry\": \"{{LIBRARIAN_ALIAS}}-registry\",\n    \"schema\": \"{{JOURNEY_MARK_REQUEST_SCHEMA_SAID}}\",\n    \"source\": {\n        \"d\": \"\", \n        \"journey\": {\n            \"n\": \"{{LIBRARIAN_JOURNEY_CRED_SAID}}\", \n            \"s\": \"{{TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}}\"\n        }\n    },\n    \"rules\": {\"d\": \"EFcPnDDBcPaRekdIRV6XGhe9G5wliUhY1YwKFVyZ-gYN\", \"usageDisclaimer\": {\"l\": \"Usage of a JourneyMarkRequest indicates the issuer assumes all risk of traveling to Abydos.\"}, \"issuanceDisclaimer\": {\"l\": \"All desiring entrance into Abydos must present JourneyMarkRequest credentials issued to the Veniordine.\"}, \"privacyDisclaimer\": {\"l\": \"It is the sole responsibility of Holders as Issuees of a JourneyMarkRequest to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification.\"}}\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/credentials/{{LIBRARIAN_ALIAS}}",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{LIBRARIAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WI Issue Mark->EX",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Richard Journey Mark Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"EXPLORER_JOURNEY_MARK_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"journeyDestination\": \"Osireion\",\n        \"gatekeeper\": \"Zaqiel\",\n        \"negotiatedSplit\": 50.00\n    },\n    \"recipient\": \"{{EXPLORER_PREFIX}}\",\n    \"registry\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"schema\": \"{{JOURNEY_MARK_SCHEMA_SAID}}\",\n    \"source\": {\n        \"d\": \"\", \n        \"request\": {\n            \"n\": \"{{WISEMAN_EX_JOURNEY_REQUEST_CRED_SAID}}\", \n            \"s\": \"{{JOURNEY_MARK_REQUEST_SCHEMA_SAID}}\"\n        }\n    },\n    \"rules\": {\"d\": \"EPATPxWwgPMpuxTNO0OOXTSfALWmbMHt7IaujAIczSyI\", \"usageDisclaimer\": {\"l\": \"Usage of a JourneyMark enables yet does not guarantee entrance to Abydos.\"}, \"issuanceDisclaimer\": {\"l\": \"A JourneyMark indicates the issuee is granted the option of entrance to Abydos yet does not provide any other benefit.\"}, \"privacyDisclaimer\": {\"l\": \"It is the sole responsibility of Holders as Issuees of a JourneyMark to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification.\"}}\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WI Issue Mark->LI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Elayne Journey Mark Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"LIBRARIAN_JOURNEY_MARK_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"journeyDestination\": \"Osireion\",\n        \"gatekeeper\": \"Zaqiel\",\n        \"negotiatedSplit\": 50.00\n    },\n    \"recipient\": \"{{LIBRARIAN_PREFIX}}\",\n    \"registry\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"schema\": \"{{JOURNEY_MARK_SCHEMA_SAID}}\",\n    \"source\": {\n        \"d\": \"\", \n        \"request\": {\n            \"n\": \"{{WISEMAN_LI_JOURNEY_REQUEST_CRED_SAID}}\", \n            \"s\": \"{{JOURNEY_MARK_REQUEST_SCHEMA_SAID}}\"\n        }\n    },\n    \"rules\": {\"d\": \"EPATPxWwgPMpuxTNO0OOXTSfALWmbMHt7IaujAIczSyI\", \"usageDisclaimer\": {\"l\": \"Usage of a JourneyMark enables yet does not guarantee entrance to Abydos.\"}, \"issuanceDisclaimer\": {\"l\": \"A JourneyMark indicates the issuee is granted the option of entrance to Abydos yet does not provide any other benefit.\"}, \"privacyDisclaimer\": {\"l\": \"It is the sole responsibility of Holders as Issuees of a JourneyMark to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification.\"}}\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WI Issue Charter->EX",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Richard Journey Charter Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"EXPLORER_JOURNEY_CHARTER_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"partySize\": 2,\n        \"authorizerName\": \"Ramiel\"\n    },\n    \"recipient\": \"{{EXPLORER_PREFIX}}\",\n    \"registry\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"schema\": \"{{JOURNEY_CHARTER_SCHEMA_SAID}}\",\n    \"source\": {\n        \"d\": \"\", \n        \"mark\": {\n            \"n\": \"{{EXPLORER_JOURNEY_MARK_CRED_SAID}}\", \n            \"s\": \"{{JOURNEY_MARK_SCHEMA_SAID}}\"\n        },\n        \"journey\": {\n            \"n\": \"{{EXPLORER_JOURNEY_CRED_SAID}}\",\n            \"s\": \"{{TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}}\"\n        }\n    },\n    \"rules\": {\"d\": \"EHP7ROagNEPGR2VaQeghzoCqzwOMuXgZwJUFWn3D-k3K\", \"usageDisclaimer\": {\"l\": \"Usage of a JourneyCharter Credential in Abydos may significantly reduce your life expectancy.\"}, \"issuanceDisclaimer\": {\"l\": \"All desiring entrance into Abydos must present credentials issued by the Veniordine.\"}, \"privacyDisclaimer\": {\"l\": \"It is the sole responsibility of Holders as Issuees of a JourneyCharter credential to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification.\"}}\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WI Issue Charter->LI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.d) {",
+									"    console.log(\"Elayne Journey Charter Credential SAID: \", jsonData.d);",
+									"    pm.environment.set(\"LIBRARIAN_JOURNEY_CHARTER_CRED_SAID\", jsonData.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credentialData\": {\n        \"partySize\": 2,\n        \"authorizerName\": \"Ramiel\"\n    },\n    \"recipient\": \"{{LIBRARIAN_PREFIX}}\",\n    \"registry\": \"{{WISEMAN_ALIAS}}-registry\",\n    \"schema\": \"{{JOURNEY_CHARTER_SCHEMA_SAID}}\",\n    \"source\": {\n        \"d\": \"\", \n        \"mark\": {\n            \"n\": \"{{LIBRARIAN_JOURNEY_MARK_CRED_SAID}}\", \n            \"s\": \"{{JOURNEY_MARK_SCHEMA_SAID}}\"\n        },\n        \"journey\": {\n            \"n\": \"{{LIBRARIAN_JOURNEY_CRED_SAID}}\",\n            \"s\": \"{{TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}}\"\n        }\n    },\n    \"rules\": {\"d\": \"EHP7ROagNEPGR2VaQeghzoCqzwOMuXgZwJUFWn3D-k3K\", \"usageDisclaimer\": {\"l\": \"Usage of a JourneyCharter Credential in Abydos may significantly reduce your life expectancy.\"}, \"issuanceDisclaimer\": {\"l\": \"All desiring entrance into Abydos must present credentials issued by the Veniordine.\"}, \"privacyDisclaimer\": {\"l\": \"It is the sole responsibility of Holders as Issuees of a JourneyCharter credential to present that credential in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification. https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification.\"}}\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Present Charter->Verify",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recipient\": \"{{GATEKEEPER_ALIAS}}\",\n    \"said\": \"{{EXPLORER_JOURNEY_CHARTER_CRED_SAID}}\",   \n    \"schema\": \"{{JOURNEY_CHARTER_SCHEMA_SAID}}\",\n    \"include\": true\n}"
+						},
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/credentials/{{EXPLORER_ALIAS}}/presentations",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{EXPLORER_ALIAS}}",
+								"presentations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Present Charter->Verify",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recipient\": \"{{GATEKEEPER_ALIAS}}\",\n    \"said\": \"{{LIBRARIAN_JOURNEY_CHARTER_CRED_SAID}}\",   \n    \"schema\": \"{{JOURNEY_CHARTER_SCHEMA_SAID}}\",\n    \"include\": true\n}"
+						},
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/credentials/{{LIBRARIAN_ALIAS}}/presentations",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{LIBRARIAN_ALIAS}}",
+								"presentations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Get Creds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/credentials/{{EXPLORER_ALIAS}}?type=received",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{EXPLORER_ALIAS}}"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "received"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LI Get Creds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{LIBRARIAN_AGENT}}/credentials/{{LIBRARIAN_ALIAS}}?type=received",
+							"host": [
+								"{{LIBRARIAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{LIBRARIAN_ALIAS}}"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "received"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Get Creds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}?type=received",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "received"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

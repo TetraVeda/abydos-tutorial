@@ -16,10 +16,10 @@ export LSCOLORS=GxFxCxDxBxegedabagaced
 RED="\e[31m"
 LCYAN="\e[1;36m" # Wise Man
 GREEN="\e[32m"
-YELLO="\e[33m" # Explorer
-MAGNT="\e[35m" # Librarian
-PURPL="\e[35m" # Gatekeeper
-LTGRN="\e[1;32m"
+YELLO="\e[33m"   # Explorer
+MAGNT="\e[35m"   # Librarian
+LTGRN="\e[1;32m" # Gatekeeper
+PURPL="\e[35m"
 LBLUE="\e[94m"
 BLRED="\e[1;31m"
 BLGRN="\e[3;32m"
@@ -44,6 +44,7 @@ function logv() {
 }
 
 SERVICES_ONLY=
+AGENTS=false
 ##### KERI Configuration #####
 # Names and Aliases
 EXPLORER_KEYSTORE=explorer
@@ -102,6 +103,7 @@ GATEKEEPER_WEBHOOK_PID=99999
 EXPLORER_AGENT_PID=99999
 LIBRARIAN_AGENT_PID=99999
 WISEMAN_AGENT_PID=99999
+GATEKEEPER_AGENT_PID=99999
 
 # HTTP and TCP Ports for witnesses and agents
 WAN_WITNESS_HTTP_PORT=5642
@@ -116,8 +118,8 @@ LIBRARIAN_AGENT_HTTP_PORT=5622
 LIBRARIAN_AGENT_TCP_PORT=5623
 WISEMAN_AGENT_HTTP_PORT=5624
 WISEMAN_AGENT_TCP_PORT=5625
-GATEKEEPER_AGENT_HTTP_PORT=5627
-GATEKEEPER_AGENT_TCP_PORT=5628
+GATEKEEPER_AGENT_HTTP_PORT=5626
+GATEKEEPER_AGENT_TCP_PORT=5627
 
 # URLs
 WAN_WITNESS_URL=http://127.0.0.1:5642
@@ -236,32 +238,36 @@ function start_vlei_server() {
 
 function start_agents() {
   log "Starting ${YELLO}${EXPLORER_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${EXPLORER_AGENT_HTTP_PORT} -T ${EXPLORER_AGENT_TCP_PORT} \
+
+  kli agent start --insecure --admin-http-port ${EXPLORER_AGENT_HTTP_PORT} --tcp ${EXPLORER_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
     --path ${ATHENA_DIR}/agent_static &
   EXPLORER_AGENT_PID=$!
-  waitfor localhost:${EXPLORER_AGENT_TCP_PORT} -t 1
 
   log "Starting ${MAGNT}${LIBRARIAN_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${LIBRARIAN_AGENT_HTTP_PORT} -T ${LIBRARIAN_AGENT_TCP_PORT} \
+  kli agent start --insecure --admin-http-port ${LIBRARIAN_AGENT_HTTP_PORT} --tcp ${LIBRARIAN_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
     --path ${ATHENA_DIR}/agent_static &
   LIBRARIAN_AGENT_PID=$!
-  waitfor localhost:${LIBRARIAN_AGENT_TCP_PORT} -t 1
 
   log "Starting ${LCYAN}${WISEMAN_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${WISEMAN_AGENT_HTTP_PORT} -T ${WISEMAN_AGENT_TCP_PORT} \
+  kli agent start --insecure --admin-http-port ${WISEMAN_AGENT_HTTP_PORT} --tcp ${WISEMAN_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
     --path ${ATHENA_DIR}/agent_static &
   WISEMAN_AGENT_PID=$!
-  waitfor localhost:${EXPLORER_AGENT_TCP_PORT} -t 1
 
   log "Starting ${LTGRN}${GATEKEEPER_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${GATEKEEPER_AGENT_HTTP_PORT} -T ${GATEKEEPER_AGENT_TCP_PORT} \
+  kli agent start --insecure --admin-http-port ${GATEKEEPER_AGENT_HTTP_PORT} --tcp ${GATEKEEPER_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
     --path ${ATHENA_DIR}/agent_static &
-  WISEMAN_AGENT_PID=$!
-  waitfor localhost:${GATEKEEPER_AGENT_TCP_PORT} -t 1
+  GATEKEEPER_AGENT_PID=$!
+
+  # Pipelined to run them all in parallel
+  # /codes endpoint is the only one I found that allows a GET request to return a 200 success without being unlocked.
+  waitfor http://127.0.0.1:${EXPLORER_AGENT_HTTP_PORT}/codes -t 5 |
+    waitfor http://127.0.0.1:${LIBRARIAN_AGENT_HTTP_PORT}/codes -t 5 |
+    waitfor http://127.0.0.1:${WISEMAN_AGENT_HTTP_PORT}/codes -t 5 |
+    waitfor http://127.0.0.1:${GATEKEEPER_AGENT_HTTP_PORT}/codes -t 5
 
   log "Agents started."
 }
@@ -388,7 +394,7 @@ function make_keystores_and_incept_kli() {
   kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
   log ""
 
-  log "Create ${PURPL}${GATEKEEPER_ALIAS}'s${EC} keystore\n"
+  log "Create ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} keystore\n"
   kli init --name ${GATEKEEPER_KEYSTORE} --salt ${GATEKEEPER_SALT} --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file ${WITNESS_INCEPTION_CONFIG_FILE}
@@ -712,6 +718,18 @@ function start_webhook() {
   waitfor localhost:9923 -t 1
 }
 
+function present_credentials() {
+  log "Presenting ${YELLO}${EXPLORER_ALIAS}'s${EC} JourneyCharter ${LBLUE}credential${EC} to ${LTGRN}Gatekeeper${EC}"
+  RICHARD_CRED_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said --schema ${JOURNEY_CHARTER_SCHEMA_SAID})
+  kli vc present --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said "${RICHARD_CRED_SAID}" --recipient ${GATEKEEPER_ALIAS} --include
+
+  log "Presenting ${MAGNT}${LIBRARIAN_ALIAS}'s${EC} JourneyCharter ${LBLUE}credential${EC} to ${LTGRN}Gatekeeper${EC}"
+  ELAYNE_CRED_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said --schema ${JOURNEY_CHARTER_SCHEMA_SAID})
+  kli vc present --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said "${ELAYNE_CRED_SAID}" --recipient ${GATEKEEPER_ALIAS} --include
+
+  log ""
+}
+
 function check_dependencies() {
   # Checks for [sally, kli, vLEI-server] to exist locally
   # Checks whether the KASLcred Python module is installed.
@@ -770,6 +788,12 @@ function cleanup() {
   else
     log "${BLGRY}${WISEMAN_KEYSTORE} Agent not started${EC} so not shutting down"
   fi
+  if [ $GATEKEEPER_AGENT_PID != 99999 ]; then
+    log "${DGREY}Shutting down ${GATEKEEPER_KEYSTORE} agent${EC}"
+    kill $GATEKEEPER_AGENT_PID
+  else
+    log "${BLGRY}${GATEKEEPER_KEYSTORE} Agent not started${EC} so not shutting down"
+  fi
 
   # Webhook
   if [ $GATEKEEPER_WEBHOOK_PID != 99999 ]; then
@@ -827,11 +851,11 @@ function cleanup() {
     rm -v "./credential.json"
   fi
 
-  #    if [ -n "$SERVICES_ONLY" ]; then
-  #      :
-  #    else
-  #      clear_keystores
-  #    fi
+  if [ -n "$SERVICES_ONLY" ]; then
+    :
+  else
+    clear_keystores
+  fi
 }
 
 function clear_keystores() {
@@ -854,18 +878,37 @@ function main() {
   check_dependencies
   generate_credential_schemas
   read_schema_saids
-  if [ -n "$SERVICES_ONLY" ]; then
+  if [ "$AGENTS" = true ]; then
+    start_vlei_server
+
+    create_witnesses
+    start_witnesses
+    read_witness_prefixes_and_configure
+
+    #    make_keystores_and_incept_kli
+    #    read_prefixes
+    start_agents
+    #    start_gatekeeper_server
+    start_webhook
+
+    #    make_introductions
+    #    resolve_credential_oobis
+
+    #    create_credential_registries
+    #    issue_credentials
+  elif [ -n "$SERVICES_ONLY" ]; then
     start_vlei_server
 
     start_witnesses
     read_witness_prefixes_and_configure
 
     read_prefixes
-    #    start_gatekeeper_server
+    start_agents
+    start_gatekeeper_server
     start_webhook
 
     # place next item here
-
+    present_credentials
   else
     start_vlei_server
 
@@ -875,6 +918,7 @@ function main() {
 
     make_keystores_and_incept_kli
     read_prefixes
+    start_agents
     start_gatekeeper_server
     start_webhook
 
@@ -883,32 +927,34 @@ function main() {
 
     create_credential_registries
     issue_credentials
+    present_credentials
   fi
-  #  start_demo_witnesses
-  #  start_agents
 
-  # present_credential
   log "${LBLUE}Let your Journey begin${EC}!"
   waitloop
 }
 
 trap cleanup SIGTERM EXIT
 
-while getopts ":hvs" option; do
+while getopts ":hvsa" option; do
   case $option in
   h)
     log "Abydos workflow script"
-    log "workflow.sh [-v] [-h]"
+    log "workflow.sh [-v VERBOSE] [-h HELP] [-s SERVICES_ONLY] [-a AGENTS]"
     exit
     ;;
   v)
     VERBOSE=true
     log "VERBOSE set to true"
-    main
     ;;
   s)
     SERVICES_ONLY=true
     log "SERVICES_ONLY set to true"
+    main
+    ;;
+  a)
+    AGENTS=true
+    log "Using Agents rather than the KLI to manage keystores"
     main
     ;;
   \?)
