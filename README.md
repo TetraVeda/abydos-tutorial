@@ -22,21 +22,32 @@ See the [installation](#installation) section for a dependency set up walkthroug
 ### KASLCred
 
 KASLCred depends on the following libraries being installed:
-- [KERIpy](https://github.com/WebOfTrust/keripy) version 1.0.0 \ 
+- [KERIpy](https://github.com/WebOfTrust/keripy) version 1.0.0 \
+  Install with PIP
   ```bash
   python -m pip install keri=1.0.0
   ``` 
 
 KERIpy further depends on the following set of dependencies being installed:
 - [Rust](https://www.rust-lang.org/tools/install) \
+  Install with the typical script. 
   ```bash
   # the "-s -- -y" options are for a silent, unattended install. Omit them if you want to configure the install.
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   # Remember to set the PATH variable to include the Cargo binary directory like so:  PATH="$HOME/.cargo/bin:$PATH
   ```
+- [Libsodium](https://libsodium.gitbook.io/doc/installation) \
+  The Homebrew installation of Libsodium is not sufficient, or did not work for me. I had to do the following instructions like stated in Libsodium's Gitbook [Installation documentation](https://libsodium.gitbook.io/doc/installation) \
+  You need Libsodium on your PATH.\
+  Download a tarball of libsodium, preferably the latest stable version, then follow the ritual:
+  ```bash
+  ./configure
+  make && make check
+  sudo make install
+  ```
 
 ### vLEI-server
-The vLEI-server binary is created from the [WebOfTrust/vLEI](https://github.com/WebOfTrust/vLEI) repository.
+The vLEI-server binary is created from the [WebOfTrust/vLEI](https://github.com/WebOfTrust/vLEI) repository.\
 Install it like so:
 ```bash 
 git clone https://github.com/WebOfTrust/vLEI.git
