@@ -903,6 +903,7 @@ function main() {
   check_dependencies
   generate_credential_schemas
   read_schema_saids
+
   if [ -n "$SERVICES_ONLY" ] && [ "$AGENTS" = true ]; then
     start_vlei_server
     start_witnesses
@@ -946,7 +947,7 @@ function main() {
     # place next item here
     present_credentials
   else
-    start_vlei_server
+    start_vlei_server # Schema and Credential caching server
 
     create_witnesses
     start_witnesses
