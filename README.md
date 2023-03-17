@@ -34,9 +34,14 @@ KASLCred depends on the following libraries being installed:
 
 #### [KERIpy](https://github.com/WebOfTrust/keripy)
 
-Install version 1.0.0 with Pip:
+Install version 1.0.0 of KERIpy. Since 1.0.0 has not yet been pushed to PyPi, the Python package manager,
+you have to install from source like so:
 ```bash
-python -m pip install keri=1.0.0
+git clone https://github.com/WebOfTrust/keripy.git
+cd keripy
+# You will use python3 or python depending on your environment configuration.
+# Beware using a python virtual environment may interfere with your installation and prevent it from being seen from the abydos-tutorial directory.
+python3 -m pip install -e ./
 ``` 
 
 KERIpy further depends on the following set of dependencies being installed:
