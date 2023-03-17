@@ -1,12 +1,6 @@
 # [Abydos](https://en.wikipedia.org/wiki/Abydos,_Egypt) Tutorial
 
-## Dependencies
-
-- [wait-for](https://github.com/eficode/wait-for)
-- [kaslcred](https://pypi.org/project/kaslcred/) for generation of schemas
-- [vLEI server (vLEI-server)](https://github.com/WebOfTrust/vLEI)
-
-See the [installation](#installation) section for a dependency set up walkthrough.
+This is the companion repository for the *KERI Tutorial Series: Treasure Hunting in Abydos! Issuing and Verifying a Credential (ACDC)* blog article.
 
 ## Modes
 
@@ -18,6 +12,14 @@ See the [installation](#installation) section for a dependency set up walkthroug
 ```bash
 ./workflow.sh -a
 ```
+
+## Dependencies
+
+- [kaslcred](https://pypi.org/project/kaslcred/) for generation of schemas
+- [vLEI server (vLEI-server)](https://github.com/WebOfTrust/vLEI)
+- [sally](https://github.com/kentbull/sally)
+
+See the [installation](#installation) section for a detailed dependency set up walkthrough.
 
 ## Installation
 
@@ -83,6 +85,9 @@ Sally depends on [KERIpy](#keripy) so all of KERIpy's dependencies must be insta
 Do not use the [GLEIF-IT/sally](https://github.com/GLEIF-IT/sally) upstream repository unless you want to write your own customizations.
 
 If you end up writing a lot of customizations you may as well write your own custom controller from scratch using my fork and the GLEIF-IT sally as inspiration.
+
+## References
+- [wait-for](https://github.com/eficode/wait-for)
 
 ## Troubleshooting
 
