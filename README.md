@@ -22,29 +22,34 @@ See the [installation](#installation) section for a dependency set up walkthroug
 ### KASLCred
 
 KASLCred depends on the following libraries being installed:
-- [KERIpy](https://github.com/WebOfTrust/keripy) version 1.0.0 \
-  Install with PIP
-  ```bash
-  python -m pip install keri=1.0.0
-  ``` 
+- KERIpy
+  - Rust
+  - Libsodium
+- vLEI-server
+- sally (my fork)
+#### [KERIpy](https://github.com/WebOfTrust/keripy) version 1.0.0
+Install with PIP
+```bash
+python -m pip install keri=1.0.0
+``` 
 
 KERIpy further depends on the following set of dependencies being installed:
-- [Rust](https://www.rust-lang.org/tools/install) \
-  Install with the typical script. 
-  ```bash
-  # the "-s -- -y" options are for a silent, unattended install. Omit them if you want to configure the install.
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-  # Remember to set the PATH variable to include the Cargo binary directory like so:  PATH="$HOME/.cargo/bin:$PATH
-  ```
-- [Libsodium](https://libsodium.gitbook.io/doc/installation) \
-  The Homebrew installation of Libsodium is not sufficient, or did not work for me. I had to do the following instructions like stated in Libsodium's Gitbook [Installation documentation](https://libsodium.gitbook.io/doc/installation) \
-  You need Libsodium on your PATH.\
-  Download a tarball of libsodium, preferably the latest stable version, then follow the ritual:
-  ```bash
-  ./configure
-  make && make check
-  sudo make install
-  ```
+#### [Rust](https://www.rust-lang.org/tools/install)
+Install with the typical script. 
+```bash
+# the "-s -- -y" options are for a silent, unattended install. Omit them if you want to configure the install.
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Remember to set the PATH variable to include the Cargo binary directory like so:  PATH="$HOME/.cargo/bin:$PATH
+```
+#### [Libsodium](https://libsodium.gitbook.io/doc/installation)
+The Homebrew installation of Libsodium is not sufficient, or did not work for me. I had to do the following instructions like stated in Libsodium's Gitbook [Installation documentation](https://libsodium.gitbook.io/doc/installation) \
+You need Libsodium on your PATH.\
+Download a tarball of libsodium, preferably the latest stable version, then follow the ritual:
+```bash
+./configure
+make && make check
+sudo make install
+```
 
 ### vLEI-server
 The vLEI-server binary is created from the [WebOfTrust/vLEI](https://github.com/WebOfTrust/vLEI) repository.\
@@ -55,6 +60,17 @@ cd vLEI
 python -m pip install -e ./
 # installs the vLEI-server binary to your Python bin directory.
 ```
+
+### My fork of Sally
+The [sally](https://github.com/kentbull/sally) component is a small credential handler wrapper on top of KERIpy.\
+You could think of it as a custom controller.\
+Make sure to download my fork at https://github.com/kentbull/sally.
+
+Sally depends on [KERIpy](#keripy) so all of KERIpy's dependencies must be installed including Rust and Libsodium.
+
+Do not use the [GLEIF-IT/sally](https://github.com/GLEIF-IT/sally) upstream repository unless you want to write your own customizations.
+
+If you end up writing a lot of customizations you may as well write your own custom controller from scratch using my fork and the GLEIF-IT sally as inspiration.
 
 ## Troubleshooting
 ### Seeing the keri/cf/main directory created
