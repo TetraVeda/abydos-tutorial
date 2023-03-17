@@ -23,7 +23,7 @@ PURPL="\e[35m"
 LBLUE="\e[94m"
 BLRED="\e[1;31m"
 BLGRN="\e[3;32m"
-BLGRY="\e[1;90m"
+BLGRY="\e[1;90m" # Witnesses
 DGREY="\e[1;40m"
 EC="\e[0m"
 
@@ -144,7 +144,7 @@ function waitfor() {
 }
 
 function generate_credential_schemas() {
-  log "generating schemas"
+  log "${BLGRY}Generating ACDC Schemas via KASLcred...${EC}"
   mkdir -p ${ATHENA_DIR}/saidified_schemas
   python -m kaslcred ${SCHEMAS_DIR} ${SCHEMA_RESULTS_DIR} ${SCHEMAS_DIR}/athena-schema-map.json
 }
@@ -301,19 +301,20 @@ function create_witnesses() {
   # Uses the same seeds as those for `kli witness demo` so that the prefixes are the same
   # Puts all keystore and database files in $HOME/.keri
   log "${BLGRY}Creating witnesses...${EC}"
-  log "Creating witness ${LCYAN}wan${EC}"
+  log "Creating witness ${BLGRY}wan${EC}"
   kli init --name wan --salt 0AB3YW5uLXRoZS13aXRuZXNz --nopasscode \
     --config-dir "${CONFIG_DIR}" \
     --config-file main/wan-witness
-  log "Creating witness ${LCYAN}wil${EC}"
+  log "Creating witness ${BLGRY}wil${EC}"
   kli init --name wil --salt 0AB3aWxsLXRoZS13aXRuZXNz --nopasscode \
     --config-dir "${CONFIG_DIR}" \
     --config-file main/wil-witness
-  log "Creating witness ${LCYAN}wes${EC}"
+  log "Creating witness ${BLGRY}wes${EC}"
   kli init --name wes --salt 0AB3ZXNzLXRoZS13aXRuZXNz --nopasscode \
     --config-dir "${CONFIG_DIR}" \
     --config-file main/wes-witness
-  log "${BLGRN}Finished creating witnesses${EC}"
+  log "${BLGRN}Finished creating witnesses' keystores${EC}"
+  log ""
 }
 
 function start_witnesses() {
@@ -339,13 +340,13 @@ function start_witnesses() {
   waitfor localhost:${WIL_WITNESS_TCP_PORT} -t 2
   waitfor localhost:${WES_WITNESS_TCP_PORT} -t 2
 
-  log "${BLGRN}Witness Network Started${EC}"
+  log "${BLGRN}Witness network started${EC}"
   log ""
 }
 
 function read_witness_prefixes_and_configure() {
   # Writes the witness prefixes to the controller witness and OOBI bootstrap file.
-  log "reading witness prefixes and writing configuration file..."
+  log "Reading witness prefixes and writing configuration file..."
   WAN_PREFIX=$(kli status --name wan --alias wan | awk '/Identifier:/ {print $2}')
   WIL_PREFIX=$(kli status --name wil --alias wil | awk '/Identifier:/ {print $2}')
   WES_PREFIX=$(kli status --name wes --alias wes | awk '/Identifier:/ {print $2}')
@@ -354,8 +355,10 @@ function read_witness_prefixes_and_configure() {
   log "WES prefix: $WES_PREFIX"
 
   # Update data OOBIs in controller config file
+  log "Writing ${CONTROLLER_BOOTSTRAP_FILE}"
   update_config_with_witness_oobis "$CONTROLLER_BOOTSTRAP_FILE"
-  update_config_with_witness_oobis "${CONFIG_DIR}"/keri/cf/"${AGENT_CONFIG_FILENAME}".json
+  log "Writing ${AGENT_CONFIG_FILE}"
+  update_config_with_witness_oobis "${AGENT_CONFIG_FILE}"
 }
 
 function update_config_with_witness_oobis() {
@@ -375,71 +378,94 @@ function update_config_with_witness_oobis() {
 
 function make_keystores_and_incept_kli() {
   # Uses the KLI to create all needed keystores and perform the inception event for each person
-  log "${BLGRY}Creating keystores${EC}"
+  log "${BLGRY}Creating controller keystores with the KLI...${EC}"
 
   # Explorer
-  log "Creating ${YELLO}Explorer ${EXPLORER_ALIAS}${EC}"
+  log "Creating ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} keystore (wallet)"
   kli init --name ${EXPLORER_KEYSTORE} --salt "${EXPLORER_SALT}" --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  log "Performing ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} initial inception event"
   kli incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
-
   log ""
-  log "Creating ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC}"
+
   # Librarian
+  log "Creating ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} keystore (wallet)"
   kli init --name ${LIBRARIAN_KEYSTORE} --salt "${LIBRARIAN_SALT}" --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  log "Performing ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} initial inception event"
   kli incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
-
   log ""
-  log "Creating ${LCYAN}Wiseman ${WISEMAN_ALIAS}${EC}"
+
   # Wise Man
+  log "Creating ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} keystore (wallet)"
   kli init --name ${WISEMAN_KEYSTORE} --salt "${WISEMAN_SALT}" --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+  log "Performing  ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} initial inception event"
   kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
   log ""
 
-  log "Create ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} keystore\n"
+  # Gatekeeper
+  log "Create ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} keystore (wallet)"
   kli init --name ${GATEKEEPER_KEYSTORE} --salt ${GATEKEEPER_SALT} --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
+
+  log "Perform ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} initial inception event"
   kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file ${WITNESS_INCEPTION_CONFIG_FILE}
   log ""
 }
 
 function make_keystores_and_incept_agent() {
   log "Make Keystores"
+
+  log "Creating ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} keystore (wallet)"
   curl -s -X POST "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${EXPLORER_ALIAS}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq
   log ""
+#  sleep 1
+  log "Creating ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} keystore (wallet)"
   curl -s -X POST "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${LIBRARIAN_ALIAS}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq
   log ""
+#  sleep 1
+  log "Creating ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} keystore (wallet)"
   curl -s -X POST "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${WISEMAN_ALIAS}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq
   log ""
+#  sleep 1
+  log "Create ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} keystore (wallet)"
   curl -s -X POST "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${GATEKEEPER_ALIAS}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq
   log ""
+  sleep 4
 
   log "Incept keystores"
+  log "Performing ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} initial inception event"
   curl -s -X PUT "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${EXPLORER_ALIAS}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq
   log ""
+  sleep 4
+  log "Performing ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} initial inception event"
   curl -s -X PUT "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${LIBRARIAN_ALIAS}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq
   log ""
+  sleep 4
+  log "Performing  ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} initial inception event"
   curl -s -X PUT "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${WISEMAN_ALIAS}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq
   log ""
+  sleep 4
+  log "Perform ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} initial inception event"
   curl -s -X PUT "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' --data "{\"name\": \"${GATEKEEPER_ALIAS}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq
   log ""
+  sleep 4
 
 }
 
 function read_prefixes() {
   # Read aliases into local variables for later usage in writing OOBI configuration and credentials
-  log "${BLGRY}Reading in aliases...${EC}"
+  log "${BLGRY}Reading in controller aliases using the KLI...${EC}"
   RICHARD_PREFIX=$(kli status --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} | awk '/Identifier:/ {print $2}')
   ELAYNE_PREFIX=$(kli status --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} | awk '/Identifier:/ {print $2}')
   WISEMAN_PREFIX=$(kli status --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} | awk '/Identifier:/ {print $2}')
   GATEKEEPER_PREFIX=$(kli status --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} | awk '/Identifier:/ {print $2}')
 
-  log "RICHARD prefix: $RICHARD_PREFIX"
-  log "ELAYNE prefix: $ELAYNE_PREFIX"
-  log "WISEMAN prefix: $WISEMAN_PREFIX"
-  log "Gatekeeper prefix: $GATEKEEPER_PREFIX"
+  log "Richard (Explorer)  prefix: $RICHARD_PREFIX"
+  log "Elayne (Librarian)  prefix: $ELAYNE_PREFIX"
+  log "Ramiel (Wise Man)   prefix: $WISEMAN_PREFIX"
+  log "Zaqiel (Gatekeeper) prefix: $GATEKEEPER_PREFIX"
 }
 
 function start_gatekeeper_server() {
@@ -458,8 +484,9 @@ function make_introductions() {
   # Add OOBI entries to each keystore database for all of the other controllers
   # Example OOBI:
   #   http://localhost:8000/oobi/EJS0-vv_OPAQCdJLmkd5dT0EW-mOfhn_Cje4yzRjTv8q/witness/BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM
-  log "Pairwise out of band introductions ${LBLUE}OOBIs${EC}"
+  log "Pairwise out of band introductions (${LBLUE}OOBIs${EC}) with the KLI..."
 
+  log "Wiseman and Librarian -> Explorer"
   log "${LCYAN}Wiseman${EC} meets ${YELLO}Explorer${EC} | Witness: wan"
   kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${EXPLORER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX}
@@ -467,7 +494,9 @@ function make_introductions() {
   log "${MAGNT}Librarian${EC} meets ${YELLO}Explorer${EC} | Witness: wan"
   kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${EXPLORER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX}
+  log ""
 
+  log "Wiseman and Explorer -> Librarian"
   log "${LCYAN}Wiseman${EC} meets ${MAGNT}Librarian${EC} | Witness: wan"
   kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${LIBRARIAN_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX}
@@ -475,7 +504,9 @@ function make_introductions() {
   log "${YELLO}Explorer${EC} meets ${MAGNT}Librarian${EC} | Witness: wan"
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${LIBRARIAN_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX}
+  log ""
 
+  log "Librarian and Explorer -> Wiseman"
   log "${MAGNT}Librarian${EC} meets ${LCYAN}Wiseman${EC} | Witness: wan"
   kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${WISEMAN_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
@@ -483,27 +514,25 @@ function make_introductions() {
   log "${YELLO}Explorer${EC} meets ${LCYAN}Wiseman${EC} | Witness: wan"
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${WISEMAN_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
+  log ""
 
+  log "Gatekeeper -> Wise Man"
   log "Tell Gatekeeper who ${WISEMAN_ALIAS} is for later presentation support"
   kli oobi resolve --name ${GATEKEEPER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
 
+  log "Explorer, Librarian, Wise Man -> Gatekeeper"
   log "${YELLO}${EXPLORER_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
-
-  log ""
 
   log "${YELLO}${LIBRARIAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
   kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
 
-  log ""
-
   log "${YELLO}${WISEMAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
   kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
-
   log ""
 }
 
@@ -519,6 +548,7 @@ function resolve_credential_oobis() {
     log "**** Resolve ${GREEN}${SCHEMA_PARTS[1]}${EC} Credential Schema for all controllers ****"
     for c in "${controllers_array[@]}"; do
       log "Tell ${LBLUE}${c}${EC} about ${BLGRN}${SCHEMA_PARTS[1]}${EC}"
+      # performs kli oobi resolve --name keystore --oobi-alias alias --oobi http://server/oobi/SAID
       resolve_credential_oobi ${EXPLORER_KEYSTORE} "${SCHEMA_PARTS[1]}" ${VLEI_SERVER_URL} "${SCHEMA_PARTS[0]}"
     done
   done
@@ -527,6 +557,7 @@ function resolve_credential_oobis() {
 }
 
 function resolve_credential_oobi() {
+  # Performas an OOBI resolution for the target keystore with the alias and URL parts passed in
   KEYSTORE=$1
   CREDENTIAL_OOBI_ALIAS=$2
   CREDENTIAL_SERVER=$3
@@ -912,7 +943,7 @@ function main() {
     start_webhook
 
     # place next item here
-    make_keystores_and_incept_agent
+#    make_keystores_and_incept_agent
   elif [ "$AGENTS" = true ]; then
     log "agents setup"
     start_vlei_server
