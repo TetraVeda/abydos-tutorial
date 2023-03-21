@@ -1023,7 +1023,7 @@ function issue_journeycharter_credentials_agent() {
          \"schema\":\"${JOURNEY_CHARTER_SCHEMA_SAID}\",
          \"source\":${RICHARD_CHARTER_EDGE_DATA},
          \"rules\":${CHARTER_RULES}}" | jq '.d' | tr -d '"'
-  sleep 9
+  sleep 10
 
   EXPLORER_CHARTER_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${JOURNEY_CHARTER_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
   log "Explorer show JourneyCharter credential SAID: ${YELLO}${EXPLORER_CHARTER_CRED_SAID}${EC}"
@@ -1051,11 +1051,11 @@ function issue_journeycharter_credentials_agent() {
          \"schema\":\"${JOURNEY_CHARTER_SCHEMA_SAID}\",
          \"source\":${ELAYNE_CHARTER_EDGE_DATA},
          \"rules\":${CHARTER_RULES}}" | jq '.d' | tr -d '"'
-  sleep 9
+  sleep 5
 
   LIBRARIAN_CHARTER_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${JOURNEY_CHARTER_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Librarian show JourneyCharter credential SAID: ${MAGNT}${LIBRARIAN_CHARTER_CRED_SAID}${EC}"
   sleep 1
+  log "Librarian show JourneyCharter credential SAID: ${MAGNT}${LIBRARIAN_CHARTER_CRED_SAID}${EC}"
   log ""
 }
 
