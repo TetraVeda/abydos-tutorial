@@ -1,10 +1,10 @@
 {
   "schemas": [
     {
-      "schemaName": "TreasureHuntingJourney",
-      "schemaFilePath": "treasure-hunting-journey.json",
-      "dependencies": [],
-      "edgeName": "journey"
+      "schemaName": "JourneyCharter",
+      "schemaFilePath": "journey-charter.json",
+      "dependencies": ["JourneyMark", "TreasureHuntingJourney"],
+      "edgeName": ""
     },
     {
       "schemaName": "JourneyMarkRequest",
@@ -13,16 +13,16 @@
       "edgeName": "request"
     },
     {
+      "schemaName": "TreasureHuntingJourney",
+      "schemaFilePath": "treasure-hunting-journey.json",
+      "dependencies": [],
+      "edgeName": "journey"
+    },
+    {
       "schemaName": "JourneyMark",
       "schemaFilePath": "journey-mark.json",
       "dependencies": ["JourneyMarkRequest"],
       "edgeName": "mark"
-    },
-    {
-      "schemaName": "JourneyCharter",
-      "schemaFilePath": "journey-charter.json",
-      "dependencies": ["JourneyMark", "TreasureHuntingJourney"],
-      "edgeName": ""
     }
   ]
 }
