@@ -90,7 +90,7 @@ SCHEMA_MAPPING_FILE=${SCHEMAS_DIR}/schema-mappings.json
 CONTROLLER_BOOTSTRAP_FILE=${CONFIG_DIR}/keri/cf/controller-oobi-bootstrap.json
 AGENT_CONFIG_FILENAME=agent-oobi-bootstrap
 AGENT_CONFIG_FILE=${CONFIG_DIR}/keri/cf/${AGENT_CONFIG_FILENAME}.json
-WITNESS_INCEPTION_CONFIG_FILE=${CONFIG_DIR}/inception-config.json
+CONTROLLER_INCEPTION_CONFIG_FILE=${CONFIG_DIR}/inception-config.json
 
 # Process IDs (PIDs)
 WAN_WITNESS_PID=99999
@@ -389,7 +389,7 @@ function make_keystores_and_incept_kli() {
   kli init --name ${EXPLORER_KEYSTORE} --salt "${EXPLORER_SALT}" --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   log "Performing ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} initial inception event"
-  kli incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
+  kli incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
   log ""
 
   # Librarian
@@ -397,7 +397,7 @@ function make_keystores_and_incept_kli() {
   kli init --name ${LIBRARIAN_KEYSTORE} --salt "${LIBRARIAN_SALT}" --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   log "Performing ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} initial inception event"
-  kli incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
+  kli incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
   log ""
 
   # Wise Man
@@ -405,7 +405,7 @@ function make_keystores_and_incept_kli() {
   kli init --name ${WISEMAN_KEYSTORE} --salt "${WISEMAN_SALT}" --nopasscode \
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
   log "Performing  ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} initial inception event"
-  kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
+  kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
   log ""
 
   # Gatekeeper
@@ -414,7 +414,7 @@ function make_keystores_and_incept_kli() {
     --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
 
   log "Perform ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} initial inception event"
-  kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file "${WITNESS_INCEPTION_CONFIG_FILE}"
+  kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
   log ""
 }
 
@@ -469,22 +469,22 @@ function make_keystores_and_incept_agent() {
 
   log "Perform ${YELLO}${EXPLORER_ALIAS}'s${EC} initial inception event"
   RICHARD_PREFIX=$(curl -s -X POST "${EXPLORER_AGENT_URL}/ids/${EXPLORER_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${WITNESS_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
+    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
   sleep 2
   log ""
   log "Perform ${MAGNT}${LIBRARIAN_ALIAS}'s${EC} initial inception event"
   ELAYNE_PREFIX=$(curl -s -X POST "${LIBRARIAN_AGENT_URL}/ids/${LIBRARIAN_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${WITNESS_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
+    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
   sleep 2
   log ""
   log "Perform ${LCYAN}${WISEMAN_ALIAS}'s${EC} initial inception event"
   WISEMAN_PREFIX=$(curl -s -X POST "${WISEMAN_AGENT_URL}/ids/${WISEMAN_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${WITNESS_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
+    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
   sleep 2
   log ""
   log "Perform ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} initial inception event"
   GATEKEEPER_PREFIX=$(curl -s -X POST "${GATEKEEPER_AGENT_URL}/ids/${GATEKEEPER_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${WITNESS_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
+    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
   sleep 2
   log ""
 
@@ -729,11 +729,11 @@ function issue_journeymarkrequest_credentials() {
   log "Prepare ${YELLO}Richard's${EC} TreasureHuntingJourney edge."
   # load credential ID into edge file
   CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-journey-edge-filter.jq
-  RICHARD_CHARTER_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
+  RICHARD_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
   echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${CHARTER_EDGE_FILTER}"
   EXPLORER_JOURNEY_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}")
-  echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${CHARTER_EDGE_FILTER}" >"${RICHARD_CHARTER_EDGE}"
-  kli saidify --file "${RICHARD_CHARTER_EDGE}"
+  echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${CHARTER_EDGE_FILTER}" >"${RICHARD_JOURNEY_EDGE}"
+  kli saidify --file "${RICHARD_JOURNEY_EDGE}"
 
   kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
 
@@ -742,7 +742,7 @@ function issue_journeymarkrequest_credentials() {
     --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
     --recipient "${WISEMAN_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-request-data-richard.json \
-    --edges @"${RICHARD_CHARTER_EDGE}" \
+    --edges @"${RICHARD_JOURNEY_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
 
   kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" --poll
@@ -751,12 +751,12 @@ function issue_journeymarkrequest_credentials() {
   # Elayne JourneyMarkRequest
   log "Prepare ${MAGNT}Elayne's${EC} TreasureHuntingJourney edge."
   # load credential ID into edge file
-  ELAYNE_REQUEST_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
-  ELAYNE_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
-  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_REQUEST_EDGE_FILTER}"
+  ELAYNE_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
+  ELAYNE_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
+  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_JOURNEY_EDGE_FILTER}"
   LIBRARIAN_JOURNEY_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}")
-  echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_REQUEST_EDGE_FILTER}" >"${ELAYNE_REQUEST_EDGE}"
-  kli saidify --file "${ELAYNE_REQUEST_EDGE}"
+  echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_JOURNEY_EDGE_FILTER}" >"${ELAYNE_JOURNEY_EDGE}"
+  kli saidify --file "${ELAYNE_JOURNEY_EDGE}"
 
   kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
 
@@ -765,7 +765,7 @@ function issue_journeymarkrequest_credentials() {
     --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
     --recipient "${WISEMAN_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-request-data-elayne.json \
-    --edges @"${ELAYNE_REQUEST_EDGE}" \
+    --edges @"${ELAYNE_JOURNEY_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
 
   log "Show ${LCYAN}Wise Man${EC} received requests"
@@ -805,17 +805,17 @@ function issue_journeymarkrequest_credentials_agent() {
 
   # Elayne
   log "Prepare ${MAGNT}Elayne's${EC} TreasureHuntingJourney edge."
-  ELAYNE_REQUEST_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
-  ELAYNE_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
-  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_REQUEST_EDGE_FILTER}"
+  ELAYNE_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
+  ELAYNE_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
+  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_JOURNEY_EDGE_FILTER}"
   LIBRARIAN_JOURNEY_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_REQUEST_EDGE_FILTER}" >"${ELAYNE_REQUEST_EDGE}"
+  echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_JOURNEY_EDGE_FILTER}" >"${ELAYNE_JOURNEY_EDGE}"
 
   log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
-  ELAYNE_MARK_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-request-data-elayne.json)
-  ELAYNE_EDGE_DATA=$(cat "${ELAYNE_REQUEST_EDGE}")
+  ELAYNE_REQUEST_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-request-data-elayne.json)
+  ELAYNE_EDGE_DATA=$(cat "${ELAYNE_JOURNEY_EDGE}")
   curl -s -X POST "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${ELAYNE_MARK_DATA},
+    -d "{\"credentialData\":${ELAYNE_REQUEST_DATA},
          \"recipient\":\"${WISEMAN_PREFIX}\",
          \"registry\":\"${LIBRARIAN_REGISTRY}\",
          \"schema\":\"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\",
@@ -848,7 +848,7 @@ function issue_journeymark_credentials() {
     --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
     --recipient "${RICHARD_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-data-richard.json \
-    --edges @"${RICHARD_CHARTER_EDGE}" \
+    --edges @"${RICHARD_MARK_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
 
   kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --schema "${JOURNEY_MARK_SCHEMA_SAID}" --poll
@@ -884,14 +884,14 @@ function issue_journeymark_credentials_agent() {
   # Richard
   log "Prepare ${YELLO}Richard's${EC} JourneyMarkRequest edge."
   CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-request-edge-filter.jq
-  RICHARD_CHARTER_EDGE=${ATHENA_DIR}/credential_edges/richard-request-edge.json
+  RICHARD_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/richard-request-edge.json
   echo "{d: \"\", request: {n: ., s: \"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\"}}" >"${CHARTER_EDGE_FILTER}"
   EXPLORER_REQUEST_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=issued&schema=${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  echo \""${EXPLORER_REQUEST_SAID}"\" | jq -f "${CHARTER_EDGE_FILTER}" >"${RICHARD_CHARTER_EDGE}"
+  echo \""${EXPLORER_REQUEST_SAID}"\" | jq -f "${CHARTER_EDGE_FILTER}" >"${RICHARD_REQUEST_EDGE}"
 
   log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
   RICHARD_MARK_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-data-richard.json)
-  RICHARD_EDGE_DATA=$(cat "${RICHARD_CHARTER_EDGE}")
+  RICHARD_EDGE_DATA=$(cat "${RICHARD_REQUEST_EDGE}")
   curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
     -d "{\"credentialData\":${RICHARD_MARK_DATA},
          \"recipient\":\"${RICHARD_PREFIX}\",
@@ -1317,6 +1317,7 @@ function main() {
     # place next item here
     present_credentials
   else
+    # Start Here for understanding
     start_vlei_server # Schema and Credential caching server
 
     create_witnesses
