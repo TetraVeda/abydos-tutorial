@@ -783,7 +783,9 @@ function issue_journeymarkrequest_credentials_agent() {
   RICHARD_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-journey-edge-filter.jq
   RICHARD_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
   echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${RICHARD_JOURNEY_EDGE_FILTER}"
-  EXPLORER_JOURNEY_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
+  EXPLORER_JOURNEY_SAID=$(curl -s \
+    -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
+    | jq '.[0] | .sad.d' | tr -d '"')
   echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${RICHARD_JOURNEY_EDGE_FILTER}" >"${RICHARD_JOURNEY_EDGE}"
 
   log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
@@ -1125,6 +1127,17 @@ function present_credentials_agent() {
         \"include\": true
     }"
   sleep 11
+}
+
+function revoke_credentials() {
+  log "${BLRED}Revoking${EC} JourneyCharter for ${YELLO}Richard${EC}"
+  RICHARD_JOURNEY_CHARTER_CRED_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said --schema ${JOURNEY_CHARTER_SCHEMA_SAID})
+  kli vc revoke --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} --said "${RICHARD_JOURNEY_CHARTER_CRED_SAID}" --send ${GATEKEEPER_ALIAS}
+}
+
+function revoke_credentials_agent() {
+  log "${BLRED}Revoking${EC} JourneyCharter for ${YELLO}Richard${EC}"
+
 }
 
 function check_dependencies() {
