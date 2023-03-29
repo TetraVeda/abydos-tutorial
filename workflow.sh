@@ -1281,6 +1281,75 @@ function clear_keystores() {
   rm -rfv "${HOME}"/.sally
 }
 
+function agents_and_services_flow() {
+  # This flow is for experimenting with the Postman REST Collection
+  # Remember to start the Gatekeeper Manually when using this flow
+  start_vlei_server
+  start_witnesses
+  read_witness_prefixes_and_configure
+  start_agents
+  start_webhook
+  log "${BLRED}REMEMBER TO START THE GATEKEEPER MANUALLY AFTER INITIALIZING THE GATEKEEPER KEYSTORE!${EC}"
+}
+
+function agent_flow() {
+  start_vlei_server
+  start_webhook
+
+  create_witnesses
+  start_witnesses
+  read_witness_prefixes_and_configure
+
+  start_agents
+  make_keystores_and_incept_agent
+  start_gatekeeper_server
+
+  make_introductions_agent
+  create_credential_registries_agent
+
+  issue_credentials_agent
+  present_credentials_agent
+}
+
+function services_only_flow() {
+  # This is a KLI-based flow for experimenting with different steps
+  start_vlei_server
+
+  start_witnesses
+  read_witness_prefixes_and_configure
+
+  read_prefixes_kli
+  start_agents
+  start_gatekeeper_server
+  start_webhook
+
+  # place next item here
+  issue_credentials
+}
+
+function main_kli_flow() {
+  # The main flow for using the KLI
+  # Start Here for understanding
+  start_vlei_server # Schema and Credential caching server
+
+  create_witnesses
+  start_witnesses
+  read_witness_prefixes_and_configure
+
+  make_keystores_and_incept_kli
+  read_prefixes_kli
+  start_agents
+  start_gatekeeper_server
+  start_webhook
+
+  make_introductions_kli
+  # resolve_credential_oobis - not needed
+
+  create_credential_registries
+  issue_credentials
+  present_credentials
+}
+
 function main() {
   log "Hello ${GREEN}Abydos${EC} Adventurers!"
   log ""
@@ -1289,66 +1358,14 @@ function main() {
   read_schema_saids
 
   if [ -n "$SERVICES_ONLY" ] && [ "$AGENTS" = true ]; then
-    start_vlei_server
-    start_witnesses
-    read_witness_prefixes_and_configure
-    start_agents
-    start_webhook
-    #    start_gatekeeper_server
-
-    # place next item here
-    #    make_keystores_and_incept_agent
+    agents_and_services_flow
   elif [ "$AGENTS" = true ]; then
     log "agents setup"
-    start_vlei_server
-    start_webhook
-
-    create_witnesses
-    start_witnesses
-    read_witness_prefixes_and_configure
-
-    start_agents
-    make_keystores_and_incept_agent
-    start_gatekeeper_server
-
-    make_introductions_agent
-    create_credential_registries_agent
-
-    issue_credentials_agent
-    present_credentials_agent
+    agent_flow
   elif [ -n "$SERVICES_ONLY" ]; then
-    start_vlei_server
-
-    start_witnesses
-    read_witness_prefixes_and_configure
-
-    read_prefixes_kli
-    start_agents
-    start_gatekeeper_server
-    start_webhook
-
-    # place next item here
-    present_credentials
+    services_only_flow
   else
-    # Start Here for understanding
-    start_vlei_server # Schema and Credential caching server
-
-    create_witnesses
-    start_witnesses
-    read_witness_prefixes_and_configure
-
-    make_keystores_and_incept_kli
-    read_prefixes_kli
-    start_agents
-    start_gatekeeper_server
-    start_webhook
-
-    make_introductions_kli
-    #    resolve_credential_oobis
-
-    create_credential_registries
-    issue_credentials
-    present_credentials
+    main_kli_flow
   fi
 
   log "${LBLUE}Let your Journey begin${EC}!"
