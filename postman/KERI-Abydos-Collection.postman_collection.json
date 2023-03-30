@@ -200,6 +200,38 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "WM->GK OOBI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oobialias\": \"{{GATEKEEPER_ALIAS}}\",\n    \"url\": \"{{WAN_WIT_URL}}/oobi/{{GATEKEEPER_PREFIX}}/witness/{{WAN_PREFIX}}\"\n}"
+						},
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/oobi",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"oobi"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -259,9 +291,9 @@
 							"raw": "{\n    \"name\": \"{{LIBRARIAN_NAME}}\",\n    \"salt\": \"0ABcbj6VhID17F_wmgzsYSec\"\n}"
 						},
 						"url": {
-							"raw": "{{LIBRARIAN_AGENT}}/boot",
+							"raw": "{{WISEMAN_AGENT}}/boot",
 							"host": [
-								"{{LIBRARIAN_AGENT}}"
+								"{{WISEMAN_AGENT}}"
 							],
 							"path": [
 								"boot"
@@ -664,6 +696,51 @@
 							"path": [
 								"ids",
 								"{{GATEKEEPER_ALIAS}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Get Alias",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.prefix) {",
+									"    console.log(\"Explorer Prefix is \", jsonData.prefix);",
+									"    pm.environment.set(\"EXPLORER_PREFIX\", jsonData.prefix);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/ids/{{EXPLORER_ALIAS}}",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"ids",
+								"{{EXPLORER_ALIAS}}"
 							]
 						}
 					},
@@ -1168,7 +1245,7 @@
 					"response": []
 				},
 				{
-					"name": "EX Present Charter->Verify",
+					"name": "EX Present Charter->GK",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1202,7 +1279,7 @@
 					"response": []
 				},
 				{
-					"name": "LI Present Charter->Verify",
+					"name": "LI Present Charter->GK",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1367,6 +1444,162 @@
 								{
 									"key": "type",
 									"value": "received"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EX Get JC Cred",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData[0]) {",
+									"    cred1 = jsonData[0]",
+									"    console.log(\"Richard JourneyCharter Credential SAID: \", cred1.sad.d);",
+									"    pm.environment.set(\"EXPLORER_JOURNEY_CHARTER_CRED_SAID\", cred1.sad.d);",
+									"}",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{EXPLORER_AGENT}}/credentials/{{EXPLORER_ALIAS}}?type=received&schema={{JOURNEY_CHARTER_SCHEMA_SAID}}",
+							"host": [
+								"{{EXPLORER_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{EXPLORER_ALIAS}}"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "received"
+								},
+								{
+									"key": "schema",
+									"value": "{{JOURNEY_CHARTER_SCHEMA_SAID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Revoke JC | EX",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}?registry={{WISEMAN_ALIAS}}-registry&said={{EXPLORER_JOURNEY_CHARTER_CRED_SAID}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							],
+							"query": [
+								{
+									"key": "registry",
+									"value": "{{WISEMAN_ALIAS}}-registry"
+								},
+								{
+									"key": "said",
+									"value": "{{EXPLORER_JOURNEY_CHARTER_CRED_SAID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WM Get JC Creds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{WISEMAN_AGENT}}/credentials/{{WISEMAN_ALIAS}}?type=issued&schema={{JOURNEY_CHARTER_SCHEMA_SAID}}",
+							"host": [
+								"{{WISEMAN_AGENT}}"
+							],
+							"path": [
+								"credentials",
+								"{{WISEMAN_ALIAS}}"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "issued"
+								},
+								{
+									"key": "schema",
+									"value": "{{JOURNEY_CHARTER_SCHEMA_SAID}}"
 								}
 							]
 						}
