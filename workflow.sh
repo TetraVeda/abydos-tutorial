@@ -300,6 +300,24 @@ function start_demo_witnesses() {
   log ""
 }
 
+function create_witnesses_if_not_exists() {
+  log ""
+  log "${BLGRY}Checking if witnesses exist${EC}"
+  kli status --name wan --alias wan
+  WAN_EXISTS=$?
+  kli status --name wil --alias wil
+  WIL_EXISTS=$?
+  kli status --name wes --alias wes
+  WES_EXISTS=$?
+  if [ "$WAN_EXISTS" -ne 0 ] && [ "$WIL_EXISTS" -ne 0 ] && [ "$WES_EXISTS" -ne 0 ]; then
+    log "${BLGRN}Witnesses do not exist, creating${EC}"
+    create_witnesses
+  else
+    log "${LCYAN}Witnesses exist, not creating${EC}"
+  fi
+  log ""
+}
+
 function create_witnesses() {
   # Initializes keystores for three witnesses: [wan, wil, wes]
   # Uses the same seeds as those for `kli witness demo` so that the prefixes are the same
@@ -1285,6 +1303,7 @@ function agents_and_services_flow() {
   # This flow is for experimenting with the Postman REST Collection
   # Remember to start the Gatekeeper Manually when using this flow
   start_vlei_server
+  create_witnesses_if_not_exists
   start_witnesses
   read_witness_prefixes_and_configure
   start_agents
