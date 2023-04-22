@@ -21,8 +21,10 @@ This is the companion repository for the *KERI Tutorial Series: Treasure Hunting
 | python.org    | ^3.11.2  |
 | rust-lang.org | ^1.65.0  |
 
-If you don't have [tea](tea.xyz) already installed,
-run the following in this directory to start a temporary shell with those basic tools: `sh <(curl tea.xyz) -E sh`
+One approach is to run the following command in this directory,
+which will start a temporary shell with those basic tools
+but will not make permanent changes to your machine: `sh <(curl tea.xyz) -E sh`
+(We recommend installing [tea](tea.xyz) but it is not necessary.)
 
 - [kaslcred](https://pypi.org/project/kaslcred/) for generation of schemas
 - [vLEI server (vLEI-server)](https://github.com/WebOfTrust/vLEI)
