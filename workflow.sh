@@ -104,6 +104,7 @@ EXPLORER_AGENT_PID=99999
 LIBRARIAN_AGENT_PID=99999
 WISEMAN_AGENT_PID=99999
 GATEKEEPER_AGENT_PID=99999
+KERIA_PID=999999
 
 # HTTP and TCP Ports for witnesses and agents
 WAN_WITNESS_HTTP_PORT=5642
@@ -241,31 +242,30 @@ function start_vlei_server() {
 
 function start_agents() {
   log "Starting ${YELLO}${EXPLORER_KEYSTORE} agent${EC}"
-
   kli agent start --insecure --admin-http-port ${EXPLORER_AGENT_HTTP_PORT} --tcp ${EXPLORER_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static &
+    --path ${ATHENA_DIR}/agent_static/ &
   EXPLORER_AGENT_PID=$!
   sleep 1
 
   log "Starting ${MAGNT}${LIBRARIAN_KEYSTORE} agent${EC}"
   kli agent start --insecure --admin-http-port ${LIBRARIAN_AGENT_HTTP_PORT} --tcp ${LIBRARIAN_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static &
+    --path ${ATHENA_DIR}/agent_static/ &
   LIBRARIAN_AGENT_PID=$!
   sleep 1
 
   log "Starting ${LCYAN}${WISEMAN_KEYSTORE} agent${EC}"
   kli agent start --insecure --admin-http-port ${WISEMAN_AGENT_HTTP_PORT} --tcp ${WISEMAN_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static &
+    --path ${ATHENA_DIR}/agent_static/ &
   WISEMAN_AGENT_PID=$!
   sleep 1
 
   log "Starting ${LTGRN}${GATEKEEPER_KEYSTORE} agent${EC}"
   kli agent start --insecure --admin-http-port ${GATEKEEPER_AGENT_HTTP_PORT} --tcp ${GATEKEEPER_AGENT_TCP_PORT} \
     --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static &
+    --path ${ATHENA_DIR}/agent_static/ &
   GATEKEEPER_AGENT_PID=$!
   sleep 1
 
@@ -1239,6 +1239,14 @@ function cleanup() {
     log "${BLGRY}Sally not started${EC} so not shutting down"
   fi
 
+  # KERIA Server
+  if [ $KERIA_PID != 999999 ]; then
+    log "${DGREY}Shutting down KERIA Agent server${EC}"
+    kill $KERIA_PID
+  else
+    log "${BLGRY}KERIA not started${EC} so not shutting down"
+  fi
+
   # witness network
   if [ $DEMO_WITNESS_NETWORK_PID != 8888888 ]; then
     log "${DGREY}Shutting down witness network${EC}"
@@ -1308,6 +1316,7 @@ function agents_and_services_flow() {
   read_witness_prefixes_and_configure
   start_agents
   start_webhook
+  keria_stuff
   log "${BLRED}REMEMBER TO START THE GATEKEEPER MANUALLY AFTER INITIALIZING THE GATEKEEPER KEYSTORE!${EC}"
 }
 
@@ -1343,7 +1352,8 @@ function services_only_flow() {
   start_webhook
 
   # place next item here
-  issue_credentials
+#  issue_credentials
+  keria_stuff
 }
 
 function main_kli_flow() {
@@ -1357,9 +1367,10 @@ function main_kli_flow() {
 
   make_keystores_and_incept_kli
   read_prefixes_kli
-  start_agents
+#  start_agents
   start_gatekeeper_server
   start_webhook
+  keria_stuff
 
   make_introductions_kli
   # resolve_credential_oobis - not needed
@@ -1367,6 +1378,16 @@ function main_kli_flow() {
   create_credential_registries
   issue_credentials
   present_credentials
+}
+
+function keria_stuff() {
+  log ""
+#  log "${BLGRY}Starting KERIA to listen for presentation events${EC}"
+#  keria start --config-file ${CONTROLLER_BOOTSTRAP_FILE} --config-dir ${CONFIG_DIR} &
+#  KERIA_PID=$!
+#  waitfor localhost:3901 -t 1
+#  log "${BLGRN}KERIA started${EC}"
+  log ""
 }
 
 function main() {
@@ -1386,6 +1407,8 @@ function main() {
   else
     main_kli_flow
   fi
+
+
 
   log "${LBLUE}Let your Journey begin${EC}!"
   waitloop
