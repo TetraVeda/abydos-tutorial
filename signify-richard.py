@@ -1,18 +1,22 @@
+"""
+1. Clear out the KERI directories: rm -rfv ~/.keri && rm -rfv /usr/local/var/keri
+2. Run kli witness demo from the KERIpy directory
+3. Make sure KERIA is installed with python -m pip install -e ./keria . Do it this way, so you have the latest development version installed.
+4. Run KERIA like so from the KERIA directory: keria start --config-file demo-witness-oobis.json --config-dir ./scripts
+5. Make sure SignifyPy is installed: python -m pip install -e ./signifypy from one directory above wherever you have SignifyPy cloned. Do it this way so you have the latest development version installed.
+6. Then run the signify-richard.py script with python signify-richard.py
+"""
 import json
 import os
-from time import sleep
 
 import requests
+import responses
+from keri import kering
 from keri.app.keeping import Algos
 from keri.core import coring
-import responses
-from responses import _recorder
-
-import pytest
-from keri import kering
-from keri.core.coring import Tiers, Serder, MtrDex
-
+from keri.core.coring import Serder
 from signify.app.clienting import SignifyClient
+
 
 @responses.activate
 def read_responses():

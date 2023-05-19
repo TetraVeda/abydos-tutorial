@@ -4,3 +4,4 @@ target/
 .fleet/
 venv/
 credential.json
+static/
