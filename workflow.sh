@@ -464,22 +464,22 @@ function make_keystores_and_incept_agent() {
   log "Unlock keystores"
   log "Unlock ${YELLO}Explorer ${EXPLORER_KEYSTORE}${EC} keystore"
   curl -s -X PUT "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${EXPLORER_KEYSTORE}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq '.["msg"]' | tr -d '"'
+    --data "{\"name\": \"${EXPLORER_KEYSTORE}\",\"salt\": \"${EXPLORER_SALT}\"}" 2>/dev/null | jq '.["msg"]' | tr -d '"'
   log ""
   sleep 5
   log "Unlock ${MAGNT}Librarian ${LIBRARIAN_KEYSTORE}${EC} keystore"
   curl -s -X PUT "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${LIBRARIAN_KEYSTORE}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq '.["msg"]' | tr -d '"'
+    --data "{\"name\": \"${LIBRARIAN_KEYSTORE}\",\"salt\": \"${LIBRARIAN_SALT}\"}" 2>/dev/null | jq '.["msg"]' | tr -d '"'
   log ""
   sleep 5
   log "Unlock ${LCYAN}Wise Man ${WISEMAN_KEYSTORE}${EC} keystore"
   curl -s -X PUT "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${WISEMAN_KEYSTORE}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq '.["msg"]' | tr -d '"'
+    --data "{\"name\": \"${WISEMAN_KEYSTORE}\",\"salt\": \"${WISEMAN_SALT}\"}" 2>/dev/null | jq '.["msg"]' | tr -d '"'
   log ""
   sleep 5
   log "Unlock ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} agent - triggers bootstrap config processing"
   curl -s -X PUT "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${GATEKEEPER_KEYSTORE}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq '.["msg"]' | tr -d '"'
+    --data "{\"name\": \"${GATEKEEPER_KEYSTORE}\",\"salt\": \"${GATEKEEPER_SALT}\"}" 2>/dev/null | jq '.["msg"]' | tr -d '"'
   log ""
   sleep 5
 
