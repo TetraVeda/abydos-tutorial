@@ -19,7 +19,7 @@ GREEN="\e[32m"
 YELLO="\e[33m"   # Explorer
 MAGNT="\e[35m"   # Librarian
 LTGRN="\e[1;32m" # Gatekeeper
-PURPL="\e[35m"
+PURPL="\e[35m"   # Pilot
 LBLUE="\e[94m"
 BLRED="\e[1;31m"
 BLGRN="\e[3;32m"
@@ -52,20 +52,24 @@ EXPLORER_KEYSTORE=explorer
 LIBRARIAN_KEYSTORE=librarian
 WISEMAN_KEYSTORE=wiseman
 GATEKEEPER_KEYSTORE=gatekeeper
+PILOT_KEYSTORE=pilot
 
 EXPLORER_ALIAS=richard
 LIBRARIAN_ALIAS=elayne
 WISEMAN_ALIAS=ramiel    # Ramiel See https://en.wikipedia.org/wiki/Ramiel
 GATEKEEPER_ALIAS=zaqiel # See Zaqiel https://en.wikipedia.org/wiki/Zaqiel
+PILOT_ALIAS=samyaza
 
 EXPLORER_REGISTRY=${EXPLORER_ALIAS}-registry
 LIBRARIAN_REGISTRY=${LIBRARIAN_ALIAS}-registry
 WISEMAN_REGISTRY=${WISEMAN_ALIAS}-registry
+PILOT_REGISTRY=${PILOT_ALIAS}-registry
 
 EXPLORER_SALT=0ACGZkoQexMCRRl4f21Itekh
 LIBRARIAN_SALT=0ABcbj6VhID17F_wmgzsYSec
 WISEMAN_SALT=0ABuZBlF30Rn09UhoNpsPek3
 GATEKEEPER_SALT=0ACDXyMzq1Nxc4OWxtbm9fle
+PILOT_SALT=0AAJwa8OMv3dt9Zwsooq5sSk
 
 ##### Prefixes #####
 # these values start empty and are written to in later from the read_aliases function
@@ -74,6 +78,8 @@ RICHARD_PREFIX=
 ELAYNE_PREFIX=
 WISEMAN_PREFIX=
 GATEKEEPER_PREFIX=
+PILOT_AGENT_PREFIX='EJaEZLvDwnP8AU3ILtJbFmB2XnXayhecjzuFd3V2VGQq'
+PILOT_AID_PREFIX='EKf-FD-3uAGAvKF0_FnPvwRFLHWoQe-jkHwTum-m3Uhq'
 
 # Witnesses
 WAN_PREFIX=
@@ -129,6 +135,10 @@ EXPLORER_AGENT_URL=http://127.0.0.1:${EXPLORER_AGENT_HTTP_PORT}
 LIBRARIAN_AGENT_URL=http://127.0.0.1:${LIBRARIAN_AGENT_HTTP_PORT}
 WISEMAN_AGENT_URL=http://127.0.0.1:${WISEMAN_AGENT_HTTP_PORT}
 GATEKEEPER_AGENT_URL=http://127.0.0.1:${GATEKEEPER_AGENT_HTTP_PORT}
+
+KERIA_ADMIN_URL=http://127.0.0.1:3901
+KERIA_HTTP_URL=http://127.0.0.1:3902
+KERIA_BOOT_URL=http://127.0.0.1:3903
 
 # Credential SAID variables - needed for issuance
 TREASURE_HUNTING_JOURNEY_SCHEMA_SAID=""
@@ -515,16 +525,16 @@ function make_keystores_and_incept_agent() {
 
 function read_prefixes_kli() {
   # Read aliases into local variables for later usage in writing OOBI configuration and credentials
-  log "${BLGRY}Reading in controller aliases using the KLI...${EC}"
+  log "${BLGRY}Reading in controller aliases (prefixes) using the KLI...${EC}"
   RICHARD_PREFIX=$(kli status --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} | awk '/Identifier:/ {print $2}')
   ELAYNE_PREFIX=$(kli status --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} | awk '/Identifier:/ {print $2}')
   WISEMAN_PREFIX=$(kli status --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} | awk '/Identifier:/ {print $2}')
   GATEKEEPER_PREFIX=$(kli status --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} | awk '/Identifier:/ {print $2}')
 
-  log "Richard (Explorer)  prefix: $RICHARD_PREFIX"
-  log "Elayne (Librarian)  prefix: $ELAYNE_PREFIX"
-  log "Ramiel (Wise Man)   prefix: $WISEMAN_PREFIX"
-  log "Zaqiel (Gatekeeper) prefix: $GATEKEEPER_PREFIX"
+  log "Richard (Explorer)  prefix: ${GREEN}$RICHARD_PREFIX${EC}"
+  log "Elayne (Librarian)  prefix: ${GREEN}$ELAYNE_PREFIX${EC}"
+  log "Ramiel (Wise Man)   prefix: ${GREEN}$WISEMAN_PREFIX${EC}"
+  log "Zaqiel (Gatekeeper) prefix: ${GREEN}$GATEKEEPER_PREFIX${EC}"
 }
 
 function start_gatekeeper_server() {
@@ -537,6 +547,18 @@ function start_gatekeeper_server() {
   SALLY_PID=$!
   waitfor localhost:9723 -t 2
   log "${BLGRN}Gatekeeper started${EC}"
+  log ""
+}
+
+function start_keria() {
+  log "${BLGRY}Starting ${LTGRN}KERIA${EC} ${BLGRY}server...${EC}"
+  keria start --config-dir "${CONFIG_DIR}" \
+    --config-file "${CONTROLLER_BOOTSTRAP_FILE}" &
+  KERIA_PID=$!
+  waitfor localhost:3901 -t 2
+  waitfor localhost:3902 -t 2
+  waitfor localhost:3903 -t 2
+  log "${BLGRN}KERIA started${EC}"
   log ""
 }
 
@@ -582,7 +604,7 @@ function make_introductions_kli() {
     --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
 
   log "Explorer, Librarian, Wise Man -> Gatekeeper"
-  log "${YELLO}${EXPLORER_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+  log "${MAGNT}${EXPLORER_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
 
@@ -590,9 +612,17 @@ function make_introductions_kli() {
   kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
 
-  log "${YELLO}${WISEMAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
   kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
     --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+  log ""
+}
+
+function make_introductions_keria() {
+  log "Introduce KERIA agent to KLI (${LBLUE}OOBIs${EC}) with the KLI..."
+  log "${LCYAN}Wiseman${EC} meets ${PURPL}Pilot${EC} | Witness: wan"
+  kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${PILOT_ALIAS} \
+    --oobi ${KERIA_HTTP_URL}/oobi/${PILOT_AID_PREFIX}/agent/${PILOT_AGENT_PREFIX}
   log ""
 }
 
@@ -710,6 +740,19 @@ function issue_treasurehuntingjourney_credentials() {
 
   kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --poll
   log ""
+
+}
+
+function issue_keria_credential() {
+  log "Issue TreasureHuntingJourney credentials to ${GREEN}KERIA Agent${EC}"
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${PURPL}${PILOT_ALIAS}${EC}"
+  set -xe
+  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
+    --recipient "${PILOT_AID_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json
+  set +xe
+  log ""
 }
 
 function issue_treasurehuntingjourney_credentials_agent() {
@@ -802,8 +845,8 @@ function issue_journeymarkrequest_credentials_agent() {
   RICHARD_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
   echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${RICHARD_JOURNEY_EDGE_FILTER}"
   EXPLORER_JOURNEY_SAID=$(curl -s \
-    -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
-    | jq '.[0] | .sad.d' | tr -d '"')
+    -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" |
+    jq '.[0] | .sad.d' | tr -d '"')
   echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${RICHARD_JOURNEY_EDGE_FILTER}" >"${RICHARD_JOURNEY_EDGE}"
 
   log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
@@ -1083,7 +1126,8 @@ function issue_credentials() {
   issue_treasurehuntingjourney_credentials
   issue_journeymarkrequest_credentials
   issue_journeymark_credentials
-  issue_journeycharter_credentials
+  # TODO There is a problem with JourneyCharter credentials - hangs on Sending TEL events to witnesses
+  #  issue_journeycharter_credentials
   log "${BLGRN}Finished issuing credentials${EC}"
   log ""
 }
@@ -1095,6 +1139,22 @@ function issue_credentials_agent() {
   issue_journeymark_credentials_agent
   issue_journeycharter_credentials_agent
   log "${BLGRN}Finished issuing credentials${EC}"
+}
+
+function create_pilot_agent() {
+  python create_samyaza_agent.py
+}
+
+function pilot_agent_oobis() {
+  python samyaza_oobis.py
+}
+
+function issue_credentials_to_keria_aid() {
+  echo "issuing to KERIA AID"
+  # Dependencies
+  # 1. Make new AID with KERIA SignifyPy client. Call this one Samyaza
+  # 2. Issue Journey mark to Samyaza's AID
+  # 3. List credentials with SignifyTS
 }
 
 function start_webhook() {
@@ -1178,6 +1238,10 @@ function check_dependencies() {
   fi
   if ! command -v vLEI-server &>/dev/null; then
     log "${RED}vLEI-server command not found.${EC} Install vLEI-server and retry. Exiting"
+    exit 1
+  fi
+  if ! command -v keria &>/dev/null; then
+    log "${RED}keria not found.${EC} Install keria and retry. Exiting"
     exit 1
   fi
 }
@@ -1352,7 +1416,7 @@ function services_only_flow() {
   start_webhook
 
   # place next item here
-#  issue_credentials
+  #  issue_credentials
   keria_stuff
 }
 
@@ -1367,27 +1431,22 @@ function main_kli_flow() {
 
   make_keystores_and_incept_kli
   read_prefixes_kli
-#  start_agents
+  #  start_agents
   start_gatekeeper_server
   start_webhook
-  keria_stuff
+  # keria_stuff
+#  start_keria
+#  create_pilot_agent
+  #  pilot_agent_oobis - really needed?
 
   make_introductions_kli
-  # resolve_credential_oobis - not needed
+  resolve_credential_oobis
+#  make_introductions_keria
 
   create_credential_registries
-  issue_credentials
-  present_credentials
-}
-
-function keria_stuff() {
-  log ""
-#  log "${BLGRY}Starting KERIA to listen for presentation events${EC}"
-#  keria start --config-file ${CONTROLLER_BOOTSTRAP_FILE} --config-dir ${CONFIG_DIR} &
-#  KERIA_PID=$!
-#  waitfor localhost:3901 -t 1
-#  log "${BLGRN}KERIA started${EC}"
-  log ""
+  #  issue_credentials
+#    issue_keria_credential
+  #  present_credentials
 }
 
 function main() {
@@ -1407,8 +1466,6 @@ function main() {
   else
     main_kli_flow
   fi
-
-
 
   log "${LBLUE}Let your Journey begin${EC}!"
   waitloop
