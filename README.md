@@ -23,25 +23,30 @@ See the [installation](#installation) section for a detailed dependency set up w
 
 ## Installation
 
+### Dependencies
+
+- vLEI-server: https://github.com/WebOfTrust/vLEI
+- sally (my fork): https://github.com/kentbull/sally
+
 ### KASLCred
+
+Install Kaslcred from PyPi like so:
+```bash
+python3 -m pip install kaslcred==0.1.6
+```
 
 KASLCred depends on the following libraries being installed:
 - KERIpy
-  - Rust
-  - Libsodium
-- vLEI-server
-- sally (my fork)
+  - Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`
+  - Libsodium: `brew install libsodium`
+
 
 #### [KERIpy](https://github.com/WebOfTrust/keripy)
 
-Install version 1.0.0 of KERIpy. Since 1.0.0 has not yet been pushed to PyPi, the Python package manager,
+Install version 1.1.20 of KERIpy from PyPi:
 you have to install from source like so:
 ```bash
-git clone https://github.com/WebOfTrust/keripy.git
-cd keripy
-# You will use python3 or python depending on your environment configuration.
-# Beware using a python virtual environment may interfere with your installation and prevent it from being seen from the abydos-tutorial directory.
-python3 -m pip install -e ./
+python3 -m pip install keri==1.1.20
 ``` 
 
 KERIpy further depends on the following set of dependencies being installed:
@@ -69,6 +74,8 @@ sudo make install
 ```
 
 ### vLEI-server
+
+[//]: # (TODO: Add instructions for using Vessel to host ACDC schemas instead of vLEI-server.)
 
 The vLEI-server binary is created from the [WebOfTrust/vLEI](https://github.com/WebOfTrust/vLEI) repository.\
 Install it like so:

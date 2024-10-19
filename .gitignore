@@ -5,3 +5,9 @@ target/
 venv/
 credential.json
 static/
+athena/credential_edges/elayne-charter-edges.json
+athena/credential_edges/elayne-journey-edge.json
+athena/credential_edges/elayne-request-edge.json
+athena/credential_edges/richard-charter-edges.json
+athena/credential_edges/richard-journey-edge.json
+athena/credential_edges/richard-request-edge.json

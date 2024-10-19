@@ -43,9 +43,11 @@ function logv() {
   fi
 }
 
+#### Script Configuration ####
 SERVICES_ONLY=
 AGENTS=false
 CLEAR_KEYSTORES=false
+
 ##### KERI Configuration #####
 # Names and Aliases
 EXPLORER_KEYSTORE=explorer
@@ -61,6 +63,7 @@ GATEKEEPER_ALIAS=zaqiel # See Zaqiel https://en.wikipedia.org/wiki/Zaqiel
 EXPLORER_REGISTRY=${EXPLORER_ALIAS}-registry
 LIBRARIAN_REGISTRY=${LIBRARIAN_ALIAS}-registry
 WISEMAN_REGISTRY=${WISEMAN_ALIAS}-registry
+GATEKEEPER_REGISTRY=${GATEKEEPER_ALIAS}-registry
 
 EXPLORER_SALT=0ACGZkoQexMCRRl4f21Itekh
 LIBRARIAN_SALT=0ABcbj6VhID17F_wmgzsYSec
@@ -106,13 +109,15 @@ WISEMAN_AGENT_PID=99999
 GATEKEEPER_AGENT_PID=99999
 KERIA_PID=999999
 
-# HTTP and TCP Ports for witnesses and agents
+#### HTTP and TCP Ports for keystores and agents
+# Witness ports
 WAN_WITNESS_HTTP_PORT=5642
 WAN_WITNESS_TCP_PORT=5632
 WIL_WITNESS_HTTP_PORT=5643
 WIL_WITNESS_TCP_PORT=5633
 WES_WITNESS_HTTP_PORT=5644
 WES_WITNESS_TCP_PORT=5634
+# Agent ports
 EXPLORER_AGENT_HTTP_PORT=5620
 EXPLORER_AGENT_TCP_PORT=5621
 LIBRARIAN_AGENT_HTTP_PORT=5622
@@ -150,15 +155,21 @@ function generate_credential_schemas() {
 }
 
 function read_schema_saids() {
-  # Reads ACDC schema SAIDs from the schema results directory and
+  # Reads ACDC schema SAIDs and schema names from the schema results directory and
   # writes schema saids to the controller witness and OOBI bootstrap file.
+  # creates a mapping of schema names to SAIDs like the following
+  # EIxAox3KEhiQ_yCwXWeriQ3ruPWbgK94NDDkHAZCuP9l TreasureHuntingJourney
+  # ELc8tMg_hhsAPfVbjUBBC-giEy5440oSb9EzFBZdAxHD JourneyMarkRequest
+  # EBEefH4LNQswHSrXanb-3GbjCZK7I_UCL6BdD-zwJ4my JourneyMark
+  # EEq0AkHV-i5-aCc1JMBGsd7G85HlBzI3BfyuS5lHOGjr JourneyCharter
+
   log "Reading in credential SAIDs from ${SCHEMA_RESULTS_DIR}"
 
   # Read in SAID and Credential Type
   IFS=$'\n' # read whole line
   read -r -d '' -a said_array < <(
     # shellcheck disable=SC2038
-    find "$SCHEMA_RESULTS_DIR" -type f -exec basename {} \; |
+    find "$SCHEMA_RESULTS_DIR" -type f -name '*.json' -exec basename {} \; |
       xargs -I {} cat "${SCHEMA_RESULTS_DIR}"/{} |
       jq '[."$id", ."credentialType"]|@sh' |
       tr -d '"' |
@@ -177,7 +188,7 @@ function read_schema_saids() {
 
     if [[ "$CREDENTIAL_NAME" == "TreasureHuntingJourney" ]]; then
       TREASURE_HUNTING_JOURNEY_SCHEMA_SAID="$CREDENTIAL_SAID"
-      mappings+=({"TreasureHuntingJourney": $TREASURE_HUNTING_JOURNEY_SCHEMA_SAID})
+      mappings+=("{\"TreasureHuntingJourney\": \"$TREASURE_HUNTING_JOURNEY_SCHEMA_SAID\"}")
 
     elif [[ "$CREDENTIAL_NAME" == "JourneyMarkRequest" ]]; then
       JOURNEY_MARK_REQUEST_SCHEMA_SAID="$CREDENTIAL_SAID"
@@ -231,58 +242,17 @@ function read_schema_saids() {
 function start_vlei_server() {
   # Starts the credential caching server, the vLEI-server
   log "${BLGRY}Starting Credential Cache Server (vLEI-server)...${EC}"
-  ACDC_HOME=${ATHENA_DIR}
   # shellcheck disable=SC2086
-  vLEI-server -s ${SCHEMA_RESULTS_DIR} -c "${ATHENA_DIR}"/cache/acdc -o "${ATHENA_DIR}"/cache/oobis &
+  vLEI-server -s ${SCHEMA_RESULTS_DIR} -c "${ATHENA_DIR}"/cache/acdc -o "${ATHENA_DIR}"/cache/oobis >/dev/null 2>&1 &
   VLEI_SERVER_PID=$!
   waitfor ${VLEI_SERVER_URL} -t 3
   log "${BLGRN}Credential Cache Server started${EC}"
   log ""
 }
 
-function start_agents() {
-  log "Starting ${YELLO}${EXPLORER_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${EXPLORER_AGENT_HTTP_PORT} --tcp ${EXPLORER_AGENT_TCP_PORT} \
-    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static/ &
-  EXPLORER_AGENT_PID=$!
-  sleep 1
-
-  log "Starting ${MAGNT}${LIBRARIAN_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${LIBRARIAN_AGENT_HTTP_PORT} --tcp ${LIBRARIAN_AGENT_TCP_PORT} \
-    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static/ &
-  LIBRARIAN_AGENT_PID=$!
-  sleep 1
-
-  log "Starting ${LCYAN}${WISEMAN_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${WISEMAN_AGENT_HTTP_PORT} --tcp ${WISEMAN_AGENT_TCP_PORT} \
-    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static/ &
-  WISEMAN_AGENT_PID=$!
-  sleep 1
-
-  log "Starting ${LTGRN}${GATEKEEPER_KEYSTORE} agent${EC}"
-  kli agent start --insecure --admin-http-port ${GATEKEEPER_AGENT_HTTP_PORT} --tcp ${GATEKEEPER_AGENT_TCP_PORT} \
-    --config-dir ${CONFIG_DIR} --config-file ${AGENT_CONFIG_FILENAME} \
-    --path ${ATHENA_DIR}/agent_static/ &
-  GATEKEEPER_AGENT_PID=$!
-  sleep 1
-
-  # Pipelined to run them all in parallel
-  # /codes endpoint is the only one I found that allows a GET request to return a 200 success without being unlocked.
-  waitfor http://127.0.0.1:${EXPLORER_AGENT_HTTP_PORT}/codes -t 5 |
-    waitfor http://127.0.0.1:${LIBRARIAN_AGENT_HTTP_PORT}/codes -t 5 |
-    waitfor http://127.0.0.1:${WISEMAN_AGENT_HTTP_PORT}/codes -t 5 |
-    waitfor http://127.0.0.1:${GATEKEEPER_AGENT_HTTP_PORT}/codes -t 5
-
-  log "${BLGRN}Agents started.${EC}"
-  log ""
-}
-
-function start_demo_witnesses() {
+function start_demo_keystores() {
   # Starts the witness network that comes with KERIpy
-  # Six witnesses: [wan, wil, wes, wit, wub, wyz]
+  # Six keystores: [wan, wil, wes, wit, wub, wyz]
   # Puts all keystore and database files in $HOME/.keri
   log "${BLGRY}Starting Demo Witness Network${EC}..."
   pushd "${LOCAL_DIR}"/demo_wits || exit
@@ -300,48 +270,52 @@ function start_demo_witnesses() {
   log ""
 }
 
-function create_witnesses_if_not_exists() {
-  log ""
-  log "${BLGRY}Checking if witnesses exist${EC}"
-  kli status --name wan --alias wan
-  WAN_EXISTS=$?
-  kli status --name wil --alias wil
-  WIL_EXISTS=$?
-  kli status --name wes --alias wes
-  WES_EXISTS=$?
-  if [ "$WAN_EXISTS" -ne 0 ] && [ "$WIL_EXISTS" -ne 0 ] && [ "$WES_EXISTS" -ne 0 ]; then
-    log "${BLGRN}Witnesses do not exist, creating${EC}"
-    create_witnesses
-  else
-    log "${LCYAN}Witnesses exist, not creating${EC}"
-  fi
-  log ""
-}
-
 function create_witnesses() {
-  # Initializes keystores for three witnesses: [wan, wil, wes]
+  # Initializes keystores for three keystores: [wan, wil, wes]
   # Uses the same seeds as those for `kli witness demo` so that the prefixes are the same
   # Puts all keystore and database files in $HOME/.keri
   log "${BLGRY}Creating witnesses...${EC}"
-  log "Creating witness ${BLGRY}wan${EC}"
-  kli init --name wan --salt 0AB3YW5uLXRoZS13aXRuZXNz --nopasscode \
-    --config-dir "${CONFIG_DIR}" \
-    --config-file main/wan-witness
-  log "Creating witness ${BLGRY}wil${EC}"
-  kli init --name wil --salt 0AB3aWxsLXRoZS13aXRuZXNz --nopasscode \
-    --config-dir "${CONFIG_DIR}" \
-    --config-file main/wil-witness
-  log "Creating witness ${BLGRY}wes${EC}"
-  kli init --name wes --salt 0AB3ZXNzLXRoZS13aXRuZXNz --nopasscode \
-    --config-dir "${CONFIG_DIR}" \
-    --config-file main/wes-witness
-  log "${BLGRN}Finished creating witnesses' keystores${EC}"
+  local pid_list=()
+  make_witness() {
+    local name=$1        # name of the AID, doubles as alias
+    local salt=$2        # salt for the AID (kli salt)
+    local config_dir=$3  # bootstrap config directory
+    local config_file=$4 # bootstrap config file with OOBIs
+    # Check if it exists already in $HOME/.keri and if so then skip
+    if [ -d "$HOME/.keri/ks/${name}" ]; then
+      log "AID ${YELLO}${name}${EC} already exists, skipping creation"
+      return
+    fi
+    log "Creating AID ${name} with config file ${config_file}"
+    kli init --name ${name} --salt "${salt}" --nopasscode \
+      --config-dir "${config_dir}" --config-file "${config_file}" >/dev/null 2>&1 &
+    pid_list+=($!) # add the PID to the list
+  }
+
+  make_witness wan 0AB3YW5uLXRoZS13aXRuZXNz "${CONFIG_DIR}" main/wan-witness
+  make_witness wil 0AB3aWxsLXRoZS13aXRuZXNz "${CONFIG_DIR}" main/wil-witness
+  make_witness wes 0AB3ZXNzLXRoZS13aXRuZXNz "${CONFIG_DIR}" main/wes-witness
+
+  # Wait for all background processes to finish
+  if [ ${#pid_list[@]} -gt 0 ]; then
+      wait "${pid_list[@]}"
+      log "${BLGRN}All witnesses have been created.${EC}"
+  else
+      log "${RED}No witnesses were started.${EC}"
+      exit 1
+  fi
+  log "${BLGRN}Finished creating witnesses${EC}"
   log ""
 }
 
+function migrate_witnesses() {
+  log "${BLGRY}Migrating witnesses...${EC}"
+  keystores=(wan wil wes); printf '%s\n' "${keystores[@]}" | xargs -I {} kli migrate run --name {} >/dev/null 2>&1
+}
+
 function start_witnesses() {
-  # Starts witnesses on the
-  log "${BLGRY}Starting Witness Network${EC}..."
+  # Starts keystores on the
+  log "${BLGRY}Starting Witness Network (3 witnesses)${EC}..."
 
   kli witness start --name wan --alias wan -T ${WAN_WITNESS_TCP_PORT} -H ${WAN_WITNESS_HTTP_PORT} \
     --config-dir "${CONFIG_DIR}" \
@@ -398,119 +372,75 @@ function read_witness_prefixes_and_configure() {
   update_config_with_witness_oobis "${AGENT_CONFIG_FILE}"
 }
 
-function make_keystores_and_incept_kli() {
-  # Uses the KLI to create all needed keystores and perform the inception event for each person
-  log "${BLGRY}Creating controller keystores with the KLI...${EC}"
+function make_keystores() {
+  local pid_list=()
+  make_keystore() {
+    local name=$1        # name of the AID, doubles as alias
+    local salt=$2        # salt for the AID (kli salt)
+    local config_dir=$3  # bootstrap config directory
+    local config_file=$4 # bootstrap config file with OOBIs
+    # Check if it exists already in $HOME/.keri and if so then skip
+    if [ -d "$HOME/.keri/ks/${name}" ]; then
+      log "AID ${YELLO}${name}${EC} already exists, skipping creation"
+      return
+    fi
+    log "Creating AID ${name} with config file ${config_file}"
+    kli init --name ${name} --salt "${salt}" --nopasscode \
+      --config-dir "${config_dir}" --config-file "${config_file}" >/dev/null 2>&1 &
+    pid_list+=($!) # add the PID to the list
+  }
+  make_keystore ${EXPLORER_KEYSTORE} ${EXPLORER_SALT} ${CONFIG_DIR} ${CONTROLLER_BOOTSTRAP_FILE}
+  make_keystore ${LIBRARIAN_KEYSTORE} ${LIBRARIAN_SALT} ${CONFIG_DIR} ${CONTROLLER_BOOTSTRAP_FILE}
+  make_keystore ${WISEMAN_KEYSTORE} ${WISEMAN_SALT} ${CONFIG_DIR} ${CONTROLLER_BOOTSTRAP_FILE}
+  make_keystore ${GATEKEEPER_KEYSTORE} ${GATEKEEPER_SALT} ${CONFIG_DIR} ${CONTROLLER_BOOTSTRAP_FILE}
 
-  # Explorer
-  log "Creating ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} keystore (wallet)"
-  kli init --name ${EXPLORER_KEYSTORE} --salt "${EXPLORER_SALT}" --nopasscode \
-    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
-  log "Performing ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} initial inception event"
-  kli incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
-  log ""
-
-  # Librarian
-  log "Creating ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} keystore (wallet)"
-  kli init --name ${LIBRARIAN_KEYSTORE} --salt "${LIBRARIAN_SALT}" --nopasscode \
-    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
-  log "Performing ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} initial inception event"
-  kli incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
-  log ""
-
-  # Wise Man
-  log "Creating ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} keystore (wallet)"
-  kli init --name ${WISEMAN_KEYSTORE} --salt "${WISEMAN_SALT}" --nopasscode \
-    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
-  log "Performing  ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} initial inception event"
-  kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
-  log ""
-
-  # Gatekeeper
-  log "Create ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} keystore (wallet)"
-  kli init --name ${GATEKEEPER_KEYSTORE} --salt ${GATEKEEPER_SALT} --nopasscode \
-    --config-dir "${CONFIG_DIR}" --config-file "${CONTROLLER_BOOTSTRAP_FILE}"
-
-  log "Perform ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} initial inception event"
-  kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}"
-  log ""
+  # Wait for all background processes to finish
+  if [ ${#pid_list[@]} -gt 0 ]; then
+      wait "${pid_list[@]}"
+      log "${BLGRN}All keystores have been created.${EC}"
+  else
+      log "${RED}No keystores were started.${EC}"
+      exit 1
+  fi
 }
 
-function make_keystores_and_incept_agent() {
-  # Makes all of the needed keystores using the Mark 1 KERIpy Agent HTTP interface
-  log "${BLGRY}Making Keystores...${EC}"
+function migrate_keystores() {
+  log "${BLGRY}Migrating keystores...${EC}"
+  keystores=(wiseman explorer librarian gatekeeper); printf '%s\n' "${keystores[@]}" | xargs -I {} kli migrate run --name {} >/dev/null 2>&1
+}
 
-  log "Creating ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} keystore (wallet)"
-  curl -s -X POST "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${EXPLORER_KEYSTORE}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 1
-  log "Creating ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} keystore (wallet)"
-  curl -s -X POST "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${LIBRARIAN_KEYSTORE}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 1
-  log "Creating ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} keystore (wallet)"
-  curl -s -X POST "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${WISEMAN_KEYSTORE}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 1
-  log "Create ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} keystore (wallet)"
-  curl -s -X POST "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${GATEKEEPER_KEYSTORE}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 1
+function incept_ids() {
+  # Uses the KLI to create all needed keystores and perform the inception event for each person
+  log "${BLGRY}Creating controller keystores with the KLI...${EC}"
+  local pid_list=()
 
-  log "Unlock keystores"
-  log "Unlock ${YELLO}Explorer ${EXPLORER_KEYSTORE}${EC} keystore"
-  curl -s -X PUT "${EXPLORER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${EXPLORER_KEYSTORE}\",\"salt\": \"${EXPLORER_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 5
-  log "Unlock ${MAGNT}Librarian ${LIBRARIAN_KEYSTORE}${EC} keystore"
-  curl -s -X PUT "${LIBRARIAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${LIBRARIAN_KEYSTORE}\",\"salt\": \"${LIBRARIAN_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 5
-  log "Unlock ${LCYAN}Wise Man ${WISEMAN_KEYSTORE}${EC} keystore"
-  curl -s -X PUT "${WISEMAN_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${WISEMAN_KEYSTORE}\",\"salt\": \"${WISEMAN_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 5
-  log "Unlock ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} agent - triggers bootstrap config processing"
-  curl -s -X PUT "${GATEKEEPER_AGENT_URL}/boot" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data "{\"name\": \"${GATEKEEPER_KEYSTORE}\",\"salt\": \"${GATEKEEPER_SALT}\"}" | jq '.["msg"]' | tr -d '"'
-  log ""
-  sleep 5
+  # Explorer
+  log "Performing ${YELLO}Explorer ${EXPLORER_ALIAS}${EC} initial inception event"
+  kli incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}" >/dev/null 2>&1 &
+  pid_list+=($!)
 
-  log "${BLGRY}Incept keystores${EC}"
+  # Librarian
+  log "Performing ${MAGNT}Librarian ${LIBRARIAN_ALIAS}${EC} initial inception event"
+  kli incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}" >/dev/null 2>&1 &
+  pid_list+=($!)
 
-  log "Perform ${YELLO}${EXPLORER_ALIAS}'s${EC} initial inception event"
-  RICHARD_PREFIX=$(curl -s -X POST "${EXPLORER_AGENT_URL}/ids/${EXPLORER_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
-  sleep 2
-  log ""
-  log "Perform ${MAGNT}${LIBRARIAN_ALIAS}'s${EC} initial inception event"
-  ELAYNE_PREFIX=$(curl -s -X POST "${LIBRARIAN_AGENT_URL}/ids/${LIBRARIAN_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
-  sleep 2
-  log ""
-  log "Perform ${LCYAN}${WISEMAN_ALIAS}'s${EC} initial inception event"
-  WISEMAN_PREFIX=$(curl -s -X POST "${WISEMAN_AGENT_URL}/ids/${WISEMAN_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
-  sleep 2
-  log ""
-  log "Perform ${LTGRN}${GATEKEEPER_ALIAS}'s${EC} initial inception event"
-  GATEKEEPER_PREFIX=$(curl -s -X POST "${GATEKEEPER_AGENT_URL}/ids/${GATEKEEPER_ALIAS}" -H 'accept: */*' -H 'Content-Type: application/json' \
-    --data @${CONTROLLER_INCEPTION_CONFIG_FILE} | jq '.["d"]' | tr -d '"')
-  sleep 2
-  log ""
+  # Wise Man
+  log "Performing  ${LCYAN}Wise Man ${WISEMAN_ALIAS}${EC} initial inception event"
+  kli incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}" >/dev/null 2>&1 &
+  pid_list+=($!)
 
-  log "${YELLO}Richard (Explorer)  prefix: $RICHARD_PREFIX${EC}"
-  log "${MAGNT}Elayne (Librarian)  prefix: $ELAYNE_PREFIX${EC}"
-  log "${LCYAN}Ramiel (Wise Man)   prefix: $WISEMAN_PREFIX${EC}"
-  log "${LTGRN}Zaqiel (Gatekeeper) prefix: $GATEKEEPER_PREFIX${EC}"
-  log ""
+  # Gatekeeper
+  log "Performing ${LTGRN}Gatekeeper ${GATEKEEPER_ALIAS}${EC} initial inception event"
+  kli incept --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} --file "${CONTROLLER_INCEPTION_CONFIG_FILE}" >/dev/null 2>&1 &
+  pid_list+=($!)
+
+  # Wait for all background processes to finish
+    if [ ${#pid_list[@]} -gt 0 ]; then
+        wait "${pid_list[@]}"
+        log "${BLGRN}All IDs are incepted.${EC}"
+    else
+        log "${RED}No IDs were incepted.${EC}"
+    fi
 }
 
 function read_prefixes_kli() {
@@ -521,10 +451,10 @@ function read_prefixes_kli() {
   WISEMAN_PREFIX=$(kli status --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} | awk '/Identifier:/ {print $2}')
   GATEKEEPER_PREFIX=$(kli status --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} | awk '/Identifier:/ {print $2}')
 
-  log "Richard (Explorer)  prefix: $RICHARD_PREFIX"
-  log "Elayne (Librarian)  prefix: $ELAYNE_PREFIX"
-  log "Ramiel (Wise Man)   prefix: $WISEMAN_PREFIX"
-  log "Zaqiel (Gatekeeper) prefix: $GATEKEEPER_PREFIX"
+  log "${YELLO}Richard (Explorer)${EC}  prefix: $RICHARD_PREFIX"
+  log "${MAGNT}Elayne (Librarian)${EC}  prefix: $ELAYNE_PREFIX"
+  log "${LCYAN}Ramiel (Wise Man)${EC}   prefix: $WISEMAN_PREFIX"
+  log "${LTGRN}Zaqiel (Gatekeeper)${EC} prefix: $GATEKEEPER_PREFIX"
 }
 
 function start_gatekeeper_server() {
@@ -533,7 +463,7 @@ function start_gatekeeper_server() {
   sally server start --name ${GATEKEEPER_KEYSTORE} --alias ${GATEKEEPER_ALIAS} \
     --web-hook http://127.0.0.1:9923 \
     --auth "${WISEMAN_PREFIX}" \
-    --schema-mappings "${SCHEMA_MAPPING_FILE}" &
+    --schema-mappings "${SCHEMA_MAPPING_FILE}" >/dev/null 2>&1 &
   SALLY_PID=$!
   waitfor localhost:9723 -t 2
   log "${BLGRN}Gatekeeper started${EC}"
@@ -541,94 +471,74 @@ function start_gatekeeper_server() {
 }
 
 function make_introductions_kli() {
-  # Add OOBI entries to each keystore database for all of the other controllers
+  # Add OOBI entries to each keystore database for all of the other controllers except the gatekeeper; gatekeeper only gets wise man
   # Example OOBI:
   #   http://localhost:8000/oobi/EJS0-vv_OPAQCdJLmkd5dT0EW-mOfhn_Cje4yzRjTv8q/witness/BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM
   log "Pairwise out of band introductions (${LBLUE}OOBIs${EC}) with the KLI..."
 
+  local pid_list=()
+
   log "Wise Man and Librarian -> Explorer"
   log "${LCYAN}Wise Man${EC} meets ${YELLO}Explorer${EC} | Witness: wan"
   kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${EXPLORER_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX}
+    --oobi ${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
   log "${MAGNT}Librarian${EC} meets ${YELLO}Explorer${EC} | Witness: wan"
   kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${EXPLORER_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX}
-  log ""
+    --oobi ${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
   log "Wise Man and Explorer -> Librarian"
   log "${LCYAN}Wise Man${EC} meets ${MAGNT}Librarian${EC} | Witness: wan"
   kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${LIBRARIAN_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX}
+    --oobi ${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
   log "${YELLO}Explorer${EC} meets ${MAGNT}Librarian${EC} | Witness: wan"
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${LIBRARIAN_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX}
-  log ""
+    --oobi ${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
   log "Librarian and Explorer -> Wise Man"
   log "${MAGNT}Librarian${EC} meets ${LCYAN}Wise Man${EC} | Witness: wan"
   kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${WISEMAN_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
+    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
   log "${YELLO}Explorer${EC} meets ${LCYAN}Wise Man${EC} | Witness: wan"
   kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${WISEMAN_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
-  log ""
+    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
   log "Gatekeeper -> Wise Man"
   log "Tell Gatekeeper who ${WISEMAN_ALIAS} is for later presentation support"
   kli oobi resolve --name ${GATEKEEPER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}
+    --oobi ${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX} &
+  pid_list+=($!)
 
-  log "Explorer, Librarian, Wise Man -> Gatekeeper"
-  log "${YELLO}${EXPLORER_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
-  kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+  # Wait for all background processes to finish
+    if [ ${#pid_list[@]} -gt 0 ]; then
+        wait "${pid_list[@]}"
+        log "${BLGRN}All OOBIs have been resolved.${EC}"
+    else
+        log "${RED}No OOBIs were resolved.${EC}"
+    fi
 
-  log "${YELLO}${LIBRARIAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
-  kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
-
-  log "${YELLO}${WISEMAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
-  kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
-    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
-  log ""
-}
-
-function make_introductions_agent() {
-  # Perform all OOBI requests with the Agent API
-  log "${BLGRY}Performing OOBI requests${EC}"
-  log ""
-
-  log "Wise Man -> Explorer"
-  log "${LCYAN}Wise Man${EC} meets ${YELLO}Explorer${EC} | Witness: wan"
-  curl -s -X POST "${WISEMAN_AGENT_URL}/oobi" -H "accept: */*" -H "Content-Type: application/json" \
-    -d "{\"oobialias\": \"${EXPLORER_ALIAS}\", \"url\":\"${WAN_WITNESS_URL}/oobi/${RICHARD_PREFIX}/witness/${WAN_PREFIX}\"}" | jq
-  sleep 1
-
-  log "Wise Man -> Librarian"
-  curl -s -X POST "${WISEMAN_AGENT_URL}/oobi" -H "accept: */*" -H "Content-Type: application/json" \
-    -d "{\"oobialias\": \"${LIBRARIAN_ALIAS}\", \"url\":\"${WAN_WITNESS_URL}/oobi/${ELAYNE_PREFIX}/witness/${WAN_PREFIX}\"}" | jq
-  sleep 1
-
-  log "Explorer, Librarian -> Wise Man"
-  curl -s -X POST "${EXPLORER_AGENT_URL}/oobi" -H "accept: */*" -H "Content-Type: application/json" \
-    -d "{\"oobialias\": \"${WISEMAN_ALIAS}\", \"url\":\"${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}\"}" | jq
-  sleep 1
-
-  curl -s -X POST "${LIBRARIAN_AGENT_URL}/oobi" -H "accept: */*" -H "Content-Type: application/json" \
-    -d "{\"oobialias\": \"${WISEMAN_ALIAS}\", \"url\":\"${WAN_WITNESS_URL}/oobi/${WISEMAN_PREFIX}/witness/${WAN_PREFIX}\"}" | jq
-  sleep 1
-
-  log "Explorer, Librarian -> Gatekeeper"
-  curl -s -X POST "${EXPLORER_AGENT_URL}/oobi" -H "accept: */*" -H "Content-Type: application/json" \
-    -d "{\"oobialias\": \"${GATEKEEPER_ALIAS}\", \"url\":\"${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}\"}" | jq
-  sleep 1
-
-  curl -s -X POST "${LIBRARIAN_AGENT_URL}/oobi" -H "accept: */*" -H "Content-Type: application/json" \
-    -d "{\"oobialias\": \"${GATEKEEPER_ALIAS}\", \"url\":\"${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}\"}" | jq
-  sleep 1
+  # This should not be necessary because IPEX Grant sends the presenter KEL to the receiver (Gatekeeper)
+#  log "Explorer, Librarian, Wise Man -> Gatekeeper"
+#  log "${YELLO}${EXPLORER_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+#  kli oobi resolve --name ${EXPLORER_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+#    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+#
+#  log "${YELLO}${LIBRARIAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+#  kli oobi resolve --name ${LIBRARIAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+#    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+#
+#  log "${YELLO}${WISEMAN_ALIAS}${EC} meets ${BLRED}Gatekeeper${EC} | Witness: wan"
+#  kli oobi resolve --name ${WISEMAN_KEYSTORE} --oobi-alias ${GATEKEEPER_ALIAS} \
+#    --oobi ${WAN_WITNESS_URL}/oobi/${GATEKEEPER_PREFIX}/witness/${WAN_PREFIX}
+#  log ""
 }
 
 function resolve_credential_oobis() {
@@ -663,190 +573,219 @@ function resolve_credential_oobi() {
 
 function create_credential_registries() {
   log "${BLGRY}making credential registries${EC}"
-  log "Make ${YELLO}${EXPLORER_ALIAS}'s${EC} registry"
-  kli vc registry incept --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --registry-name ${EXPLORER_REGISTRY}
+  local pid_list=()
 
-  log "Make ${MAGNT}${LIBRARIAN_ALIAS}'s${EC} registry"
-  kli vc registry incept --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --registry-name ${LIBRARIAN_REGISTRY}
+  create_registry() {
+    local keystore="$1"
+    local alias="$2"
+    local registry="$3"
+    local color="$4"
 
-  log "Make ${LCYAN}${WISEMAN_ALIAS}'s${EC} registry"
-  kli vc registry incept --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY}
+    log "Make ${color}${alias}'s${EC} registry"
+    kli vc registry incept --name "${keystore}" --alias "${alias}" --registry-name "${registry}" >/dev/null 2>&1 &
+    pid_list+=($!) # add the PID to the list
+  }
+
+  create_registry "${EXPLORER_KEYSTORE}" "${EXPLORER_ALIAS}" "${EXPLORER_REGISTRY}" "${YELLO}"
+  create_registry "${LIBRARIAN_KEYSTORE}" "${LIBRARIAN_ALIAS}" "${LIBRARIAN_REGISTRY}" "${MAGNT}"
+  create_registry "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "${WISEMAN_REGISTRY}" "${LCYAN}"
+  create_registry "${GATEKEEPER_KEYSTORE}" "${GATEKEEPER_ALIAS}" "${GATEKEEPER_REGISTRY}" "${LTGRN}"
+
+  if [ ${#pid_list[@]} -gt 0 ]; then
+    wait "${pid_list[@]}"
+    log "${BLGRN}All registries created.${EC}"
+  else
+    log "${RED}No registries created${EC}"
+  fi
 
   log ""
 }
 
-function create_credential_registries_agent() {
-  log "${BLGRY}Making credential registries${EC}"
-  log "Make ${YELLO}${EXPLORER_ALIAS}'s${EC} registry"
-  curl -s -X POST "${EXPLORER_AGENT_URL}/registries" -H "accept: */*" -H "Content-Type: application/json" -d "{\"alias\":\"${EXPLORER_ALIAS}\",\"baks\":[],\"estOnly\":false,\"name\":\"${EXPLORER_REGISTRY}\",\"noBackers\":true,\"toad\":0}" | jq
-  sleep 2
+function wait_for_ipex_message() {
+  local keystore="$1"
+  local alias="$2"
+  local ipex_type="$3"
+  local said="$4"
 
-  log "Make ${MAGNT}${LIBRARIAN_ALIAS}'s${EC} registry"
-  curl -s -X POST "${LIBRARIAN_AGENT_URL}/registries" -H "accept: */*" -H "Content-Type: application/json" -d "{\"alias\":\"${LIBRARIAN_ALIAS}\",\"baks\":[],\"estOnly\":false,\"name\":\"${LIBRARIAN_REGISTRY}\",\"noBackers\":true,\"toad\":0}" | jq
-  sleep 2
+  local max_attempts=10
+  local sleep_interval=2
+  local attempt=1
+  local output=""
 
-  log "Make ${LCYAN}${WISEMAN_ALIAS}'s${EC} registry"
-  curl -s -X POST "${WISEMAN_AGENT_URL}/registries" -H "accept: */*" -H "Content-Type: application/json" -d "{\"alias\":\"${WISEMAN_ALIAS}\",\"baks\":[],\"estOnly\":false,\"name\":\"${WISEMAN_REGISTRY}\",\"noBackers\":true,\"toad\":0}" | jq
-  sleep 2
+  log "Waiting for ${LTGRN}IPEX ${ipex_type}${EC} of said ${BLGRN}${said}${EC} for ${alias}..."
+  while [[ $attempt -le $max_attempts ]]; do
+    output=$(kli ipex list --name "${keystore}" --alias "${alias}" --type "${ipex_type}" --poll)
+    if echo "$output" | grep -Eq "$said"; then
+      log "${GREEN}Admit received for ${alias}${EC}"
+      log "${LCYAN}kli ipex list output: $output${EC}"
+      return 0
+    fi
+    log "Waiting for admit for ${alias} - attempt ${attempt}..."
+    logv "failed output was $output"
+    sleep $sleep_interval
+    attempt=$((attempt + 1))
+  done
 
-  log ""
+  log "${RED}Admit not received for ${alias}${EC}"
+  return 1
+}
+
+function wait_for_credentials() {
+  local keystore="$1"
+  local alias="$2"
+  local schema="$3"
+  local said="$4"
+
+  local max_attempts=10
+  local sleep_interval=2
+  local attempt=1
+
+  log "Waiting for ${LTGRN}credential ${schema}${EC} for ${alias}..."
+  while [[ $attempt -le $max_attempts ]]; do
+    output=$(kli vc list --name "${keystore}" --alias "${alias}" --schema "${schema}" --poll)
+
+    if echo "$output" | grep -Eq "$said" && echo "$output" | grep -Eq "Status: Issued"; then
+      log "${GREEN}Credential received for ${alias}${EC}"
+      log "kli vc list output: $output"
+      return 0
+    fi
+    log "Waiting for credential for ${alias} - attempt ${attempt}..."
+    log "failed output was $output"
+    sleep $sleep_interval
+    attempt=$((attempt + 1))
+  done
+
+  log "${RED}Credential not received for ${alias}${EC}"
+  exit 1
+  return 1
 }
 
 function issue_treasurehuntingjourney_credentials() {
-  log "Issue TreasureHuntingJourney credentials as welcomes"
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${YELLO}${EXPLORER_ALIAS}${EC}"
-  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+  log "Issue ${PURPL}TreasureHuntingJourney${EC} credential to ${YELLO}Richard${EC}"
+
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}creates${EC} ${PURPL}TreasureHuntingJourney${EC} for ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli vc create --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
     --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
     --recipient "${RICHARD_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json
+  CRED_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" --issued --said)
+  log "Grant ${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} ${PURPL}TreasureHuntingJourney${EC} to ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli ipex grant --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${RICHARD_PREFIX}
 
-  kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --poll
+  IPEX_GRANT=$(kli ipex list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --type grant --poll --said)
+  kli ipex admit --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${EXPLORER_KEYSTORE}" --alias "${EXPLORER_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "admit" "${ADMIT}"
+  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}sees${EC} ${PURPL}TreasureHuntingJourney${EC}"
+  wait_for_credentials "${EXPLORER_KEYSTORE}" "${EXPLORER_ALIAS}" "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" ${CRED_SAID}
 
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
-  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
-    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
-    --recipient "${ELAYNE_PREFIX}" \
-    --data @"${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json
-
-  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --poll
   log ""
 }
 
-function issue_treasurehuntingjourney_credentials_agent() {
-  log "Issue TreasureHuntingJourney credentials as welcomes"
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${YELLO}${EXPLORER_ALIAS}${EC}"
-  JOURNEY_DATA=$(cat "${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json)
-  curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${JOURNEY_DATA},
-         \"recipient\":\"${RICHARD_PREFIX}\",
-         \"registry\":\"${WISEMAN_REGISTRY}\",
-         \"schema\":\"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}" | jq '.["d"]' | tr -d '"'
-  sleep 5
+function issue_treasurehuntingjourney_elayne() {
+  log "Issue ${PURPL}TreasureHuntingJourney${EC} credential to ${MAGNT}Elayne${EC}"
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}creates${EC} ${PURPL}TreasureHuntingJourney${EC} for ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli vc create --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
+    --recipient "${ELAYNE_PREFIX}" \
+    --data @"${ATHENA_DIR}"/credential_data/osireion-treasure-hunting-journey.json
+  CRED_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
+    --issued --said | tail -1) # get the last said since the last one is the one we just issued
+  log "Grant ${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} ${PURPL}TreasureHuntingJourney${EC} with SAID ${SAID} to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli ipex grant --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${ELAYNE_PREFIX}
 
-  EXPLORER_JOURNEY_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Explorer show TreasureHuntingJourney credential SAID: ${YELLO}${EXPLORER_JOURNEY_CRED_SAID}${EC}"
-  sleep 1
-  log ""
+  IPEX_GRANT=$(kli ipex list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --type grant --poll --said)
+  kli ipex admit --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said ${IPEX_GRANT}
+  log "IPEX list for elayne"
+  kli ipex list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --poll
+  ADMIT=$(kli ipex list --name "${LIBRARIAN_KEYSTORE}" --alias "${LIBRARIAN_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "admit" "${ADMIT}"
+  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}sees${EC} ${PURPL}TreasureHuntingJourney${EC} "
+  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --poll
+  wait_for_credentials "${LIBRARIAN_KEYSTORE}" "${LIBRARIAN_ALIAS}" "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" ${CRED_SAID}
 
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} TreasureHuntingJourney to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
-  curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${JOURNEY_DATA},
-         \"recipient\":\"${ELAYNE_PREFIX}\",
-         \"registry\":\"${WISEMAN_REGISTRY}\",
-         \"schema\":\"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}" | jq '.["d"]' | tr -d '"'
-  sleep 5
-  LIBRARIAN_JOURNEY_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Librarian show TreasureHuntingJourney credential SAID: ${MAGNT}${LIBRARIAN_JOURNEY_CRED_SAID}${EC}"
-  sleep 1
   log ""
 }
 
 function issue_journeymarkrequest_credentials() {
   log "Issue JourneyMarkRequest credentials"
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+
   # Richard JourneyMarkRequest
   log "Prepare ${YELLO}Richard's${EC} TreasureHuntingJourney edge."
   # load credential ID into edge file
   CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-journey-edge-filter.jq
   RICHARD_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
   echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${CHARTER_EDGE_FILTER}"
+  log "Prepare ${YELLO}Richard's${EC} TreasureHuntingJourney edge. ${CHARTER_EDGE_FILTER}"
   EXPLORER_JOURNEY_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}")
   echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${CHARTER_EDGE_FILTER}" >"${RICHARD_JOURNEY_EDGE}"
   kli saidify --file "${RICHARD_JOURNEY_EDGE}"
 
-  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
-
-  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
-  kli vc issue --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --registry-name ${EXPLORER_REGISTRY} \
+  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}creates${EC} ${PURPL}JourneyMarkRequest${EC} Credential for ${LCYAN}${WISEMAN_ALIAS}${EC}"
+  kli vc create --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --registry-name ${EXPLORER_REGISTRY} \
     --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
     --recipient "${WISEMAN_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-request-data-richard.json \
     --edges @"${RICHARD_JOURNEY_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+  CRED_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} \
+    --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
+    --issued --said)
+  log "Grant ${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} ${PURPL}JourneyMarkRequest${EC} said ${CRED_SAID} to ${LCYAN}${WISEMAN_ALIAS}${EC}"
+  kli ipex grant --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} \
+    --said ${CRED_SAID} --recipient ${WISEMAN_PREFIX}
 
-  kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" --poll
+  IPEX_GRANT=$(kli ipex list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --type grant --poll --said)
+  kli ipex admit --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${WISEMAN_KEYSTORE}" --alias "${WISEMAN_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${EXPLORER_KEYSTORE}" "${EXPLORER_ALIAS}" "admit" "${ADMIT}"
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}sees${EC} ${PURPL}JourneyMarkRequest${EC}"
+  wait_for_credentials "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" ${CRED_SAID}
+
   log ""
+}
 
+function issue_journeymarkrequest_elayne() {
+  log "Issue JourneyMarkRequest credential to Elayne"
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
   # Elayne JourneyMarkRequest
   log "Prepare ${MAGNT}Elayne's${EC} TreasureHuntingJourney edge."
   # load credential ID into edge file
   ELAYNE_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
   ELAYNE_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
   echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_JOURNEY_EDGE_FILTER}"
+  log "Prepare ${MAGNT}Elayne's${EC} TreasureHuntingJourney edge. ${ELAYNE_JOURNEY_EDGE_FILTER}"
   LIBRARIAN_JOURNEY_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}")
   echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_JOURNEY_EDGE_FILTER}" >"${ELAYNE_JOURNEY_EDGE}"
   kli saidify --file "${ELAYNE_JOURNEY_EDGE}"
 
-  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
-
-  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
-  kli vc issue --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --registry-name ${LIBRARIAN_REGISTRY} \
+  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}creates${EC} ${PURPL}JourneyMarkRequest${EC} Credential for ${LCYAN}${WISEMAN_ALIAS}${EC}"
+  kli vc create --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --registry-name ${LIBRARIAN_REGISTRY} \
     --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
     --recipient "${WISEMAN_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-request-data-elayne.json \
     --edges @"${ELAYNE_JOURNEY_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
+  CRED_SAID=$(kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} \
+    --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" \
+    --issued --said)
+  log "Grant ${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} ${PURPL}JourneyMarkRequest${EC} to ${LCYAN}${WISEMAN_ALIAS}${EC}"
+  kli ipex grant --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${WISEMAN_PREFIX}
 
-  log "Show ${LCYAN}Wise Man${EC} received requests"
-  kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --schema "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" --poll
-  log ""
-}
+  IPEX_GRANT=$(kli ipex list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --type grant --poll --said | tail -1)
+  kli ipex admit --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${WISEMAN_KEYSTORE}" --alias "${WISEMAN_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${LIBRARIAN_KEYSTORE}" "${LIBRARIAN_ALIAS}" "admit" "${ADMIT}"
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}sees${EC} ${PURPL}JourneyMarkRequest${EC}"
+  wait_for_credentials "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" ${CRED_SAID}
 
-function issue_journeymarkrequest_credentials_agent() {
-  log "${BLGRY}Issue JourneyMarkRequest credentials${EC}"
-  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json
-
-  REQUEST_RULES=$(cat "${ATHENA_DIR}"/credential_rules/journey-mark-request-rules.json)
-  # Richard
-  log "Prepare ${YELLO}Richard's${EC} TreasureHuntingJourney edge."
-  RICHARD_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-journey-edge-filter.jq
-  RICHARD_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/richard-journey-edge.json
-  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${RICHARD_JOURNEY_EDGE_FILTER}"
-  EXPLORER_JOURNEY_SAID=$(curl -s \
-    -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" \
-    | jq '.[0] | .sad.d' | tr -d '"')
-  echo \""${EXPLORER_JOURNEY_SAID}"\" | jq -f "${RICHARD_JOURNEY_EDGE_FILTER}" >"${RICHARD_JOURNEY_EDGE}"
-
-  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
-  RICHARD_MARK_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-request-data-richard.json)
-  RICHARD_EDGE_DATA=$(cat "${RICHARD_JOURNEY_EDGE}")
-  curl -s -X POST "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${RICHARD_MARK_DATA},
-         \"recipient\":\"${WISEMAN_PREFIX}\",
-         \"registry\":\"${EXPLORER_REGISTRY}\",
-         \"schema\":\"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\",
-         \"source\":${RICHARD_EDGE_DATA},
-         \"rules\":${REQUEST_RULES}}" | jq '.d' | tr -d '"'
-  sleep 5
-
-  EXPLORER_REQUEST_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=issued&schema=${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Explorer show JourneyMarkRequest credential SAID: ${YELLO}${EXPLORER_REQUEST_CRED_SAID}${EC}"
-  sleep 1
-  log ""
-
-  # Elayne
-  log "Prepare ${MAGNT}Elayne's${EC} TreasureHuntingJourney edge."
-  ELAYNE_JOURNEY_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-journey-edge-filter.jq
-  ELAYNE_JOURNEY_EDGE=${ATHENA_DIR}/credential_edges/elayne-journey-edge.json
-  echo "{d: \"\", journey: {n: ., s: \"${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}\"}}" >"${ELAYNE_JOURNEY_EDGE_FILTER}"
-  LIBRARIAN_JOURNEY_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  echo \""${LIBRARIAN_JOURNEY_SAID}"\" | jq -f "${ELAYNE_JOURNEY_EDGE_FILTER}" >"${ELAYNE_JOURNEY_EDGE}"
-
-  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMarkRequest Credential to ${LCYAN}${WISEMAN_ALIAS}${EC}"
-  ELAYNE_REQUEST_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-request-data-elayne.json)
-  ELAYNE_EDGE_DATA=$(cat "${ELAYNE_JOURNEY_EDGE}")
-  curl -s -X POST "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${ELAYNE_REQUEST_DATA},
-         \"recipient\":\"${WISEMAN_PREFIX}\",
-         \"registry\":\"${LIBRARIAN_REGISTRY}\",
-         \"schema\":\"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\",
-         \"source\":${ELAYNE_EDGE_DATA},
-         \"rules\":${REQUEST_RULES}}" | jq '.d' | tr -d '"'
-  sleep 5
-
-  LIBRARIAN_REQUEST_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=issued&schema=${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Librarian show JourneyMarkRequest credential SAID: ${MAGNT}${LIBRARIAN_REQUEST_CRED_SAID}${EC}"
-  sleep 1
-  log ""
+   log ""
 }
 
 function issue_journeymark_credentials() {
@@ -863,16 +802,36 @@ function issue_journeymark_credentials() {
   echo \""${EXPLORER_REQUEST_SAID}"\" | jq -f "${RICHARD_REQUEST_EDGE_FILTER}" >"${RICHARD_MARK_EDGE}"
   kli saidify --file "${RICHARD_MARK_EDGE}"
 
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
-  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}creates${EC} ${PURPL}JourneyMark${EC} Credential for ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli vc create --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
     --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
     --recipient "${RICHARD_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-data-richard.json \
     --edges @"${RICHARD_MARK_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
+  CRED_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
+    --issued --said)
+  log "Grant ${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} ${PURPL}JourneyMark${EC} said ${CRED_SAID} to ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli ipex grant --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${RICHARD_PREFIX}
 
-  kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --schema "${JOURNEY_MARK_SCHEMA_SAID}" --poll
+  log "IPEX grant list for richard JourneyMark"
+  kli ipex list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --type grant --poll
+
+  IPEX_GRANT=$(kli ipex list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --type grant --poll --said | tail -1)
+  kli ipex admit --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${EXPLORER_KEYSTORE}" --alias "${EXPLORER_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "admit" "${ADMIT}"
+  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}sees${EC} ${PURPL}JourneyMark${EC}"
+  wait_for_credentials "${EXPLORER_KEYSTORE}" "${EXPLORER_ALIAS}" "${JOURNEY_MARK_SCHEMA_SAID}" ${CRED_SAID}
+
   log ""
+}
+
+function issue_journeymark_elayne() {
+  log "Issue JourneyMark credential to Elayne"
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
 
   log "Prepare ${MAGNT}Elayne's${EC} JourneyMarkRequest edge."
   # load credential ID into edge file
@@ -884,71 +843,29 @@ function issue_journeymark_credentials() {
   echo \""${LIBRARIAN_REQUEST_SAID}"\" | jq -f "${ELAYNE_REQUEST_EDGE_FILTER}" >"${ELAYNE_REQUEST_EDGE}"
   kli saidify --file "${ELAYNE_REQUEST_EDGE}"
 
-  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
-
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
-  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}creates${EC} ${PURPL}JourneyMark${EC} Credential for ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli vc create --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
     --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
     --recipient "${ELAYNE_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-mark-data-elayne.json \
     --edges @"${ELAYNE_REQUEST_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-mark-rules.json
+  CRED_SAID=$(kli vc list \
+    --name ${WISEMAN_KEYSTORE} \
+    --alias ${WISEMAN_ALIAS} \
+    --schema "${JOURNEY_MARK_SCHEMA_SAID}" \
+    --issued --said | tail -1) # get the last said since the last one is the one we just issued
+  log "Grant ${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} ${PURPL}JourneyMark${EC} to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli ipex grant --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${ELAYNE_PREFIX}
 
-  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --schema "${JOURNEY_MARK_SCHEMA_SAID}" --poll
-  log ""
-}
+  IPEX_GRANT=$(kli ipex list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --type grant --poll --said | tail -1)
+  kli ipex admit --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${LIBRARIAN_KEYSTORE}" --alias "${LIBRARIAN_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "admit" "${ADMIT}"
+  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}sees${EC} ${PURPL}JourneyMark${EC}"
+  wait_for_credentials "${LIBRARIAN_KEYSTORE}" "${LIBRARIAN_ALIAS}" "${JOURNEY_MARK_SCHEMA_SAID}" ${CRED_SAID}
 
-function issue_journeymark_credentials_agent() {
-  log "${BLGRY}Issue JourneyMark credentials${EC}"
-  CHARTER_RULES=$(cat "${ATHENA_DIR}"/credential_rules/journey-mark-rules.json)
-  # Richard
-  log "Prepare ${YELLO}Richard's${EC} JourneyMarkRequest edge."
-  CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/richard-request-edge-filter.jq
-  RICHARD_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/richard-request-edge.json
-  echo "{d: \"\", request: {n: ., s: \"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\"}}" >"${CHARTER_EDGE_FILTER}"
-  EXPLORER_REQUEST_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=issued&schema=${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  echo \""${EXPLORER_REQUEST_SAID}"\" | jq -f "${CHARTER_EDGE_FILTER}" >"${RICHARD_REQUEST_EDGE}"
-
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
-  RICHARD_MARK_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-data-richard.json)
-  RICHARD_EDGE_DATA=$(cat "${RICHARD_REQUEST_EDGE}")
-  curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${RICHARD_MARK_DATA},
-         \"recipient\":\"${RICHARD_PREFIX}\",
-         \"registry\":\"${WISEMAN_REGISTRY}\",
-         \"schema\":\"${JOURNEY_MARK_SCHEMA_SAID}\",
-         \"source\":${RICHARD_EDGE_DATA},
-         \"rules\":${CHARTER_RULES}}" | jq '.d' | tr -d '"'
-  sleep 7
-
-  EXPLORER_MARK_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${JOURNEY_MARK_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Explorer show JourneyMark credential SAID: ${YELLO}${EXPLORER_MARK_CRED_SAID}${EC}"
-  sleep 1
-  log ""
-
-  # Elayne
-  log "Prepare ${MAGNT}Elayne's${EC} JourneyMarkRequest edge."
-  ELAYNE_REQUEST_EDGE_FILTER=${ATHENA_DIR}/credential_edges/elayne-request-edge-filter.jq
-  ELAYNE_REQUEST_EDGE=${ATHENA_DIR}/credential_edges/elayne-request-edge.json
-  echo "{d: \"\", request: {n: ., s: \"${JOURNEY_MARK_REQUEST_SCHEMA_SAID}\"}}" >"${ELAYNE_REQUEST_EDGE_FILTER}"
-  LIBRARIAN_REQUEST_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=issued&schema=${JOURNEY_MARK_REQUEST_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  echo \""${LIBRARIAN_REQUEST_SAID}"\" | jq -f "${ELAYNE_REQUEST_EDGE_FILTER}" >"${ELAYNE_REQUEST_EDGE}"
-
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyMark Credential to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
-  ELAYNE_MARK_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-mark-data-elayne.json)
-  ELAYNE_EDGE_DATA=$(cat "${ELAYNE_REQUEST_EDGE}")
-  curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${ELAYNE_MARK_DATA},
-         \"recipient\":\"${ELAYNE_PREFIX}\",
-         \"registry\":\"${WISEMAN_REGISTRY}\",
-         \"schema\":\"${JOURNEY_MARK_SCHEMA_SAID}\",
-         \"source\":${ELAYNE_EDGE_DATA},
-         \"rules\":${CHARTER_RULES}}" | jq '.d' | tr -d '"'
-  sleep 7
-
-  LIBRARIAN_MARK_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${JOURNEY_MARK_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Librarian show JourneyMark credential SAID: ${MAGNT}${LIBRARIAN_MARK_CRED_SAID}${EC}"
-  sleep 1
   log ""
 }
 
@@ -975,15 +892,34 @@ function issue_journeycharter_credentials() {
     -f ${CHARTER_EDGE_FILTER})" >"${RICHARD_CHARTER_EDGE}"
   kli saidify --file "${RICHARD_CHARTER_EDGE}"
 
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyCharter Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
-  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}creates${EC} JourneyCharter Credential for ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli vc create --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
     --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" \
     --recipient "${RICHARD_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-charter-data-richard.json \
     --edges @"${RICHARD_CHARTER_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
+  CRED_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" --issued --said)
+  log "Grant ${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} JourneyCharter Credential said ${CRED_SAID} to ${YELLO}${EXPLORER_ALIAS}${EC}"
+  kli ipex grant --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${RICHARD_PREFIX}
 
-  kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" --poll
+  IPEX_GRANT=$(kli ipex list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --type grant --poll --said | tail -1)
+  kli ipex admit --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${EXPLORER_KEYSTORE}" --alias "${EXPLORER_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "admit" "${ADMIT}"
+  log "${YELLO}${EXPLORER_ALIAS}${EC} ${GREEN}sees${EC} JourneyCharter Credential"
+  wait_for_credentials "${EXPLORER_KEYSTORE}" "${EXPLORER_ALIAS}" "${JOURNEY_CHARTER_SCHEMA_SAID}" ${CRED_SAID}
+
+  log ""
+}
+
+function issue_journeycharter_elayne() {
+  log "Issue JourneyCharter credential to Elayne"
+
+  # Same rules used for both Richard and Elayne
+  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
 
   # Elayne JourneyCharter
   log "Prepare ${MAGNT}Elayne's${EC} JourneyMark edge."
@@ -1003,98 +939,40 @@ function issue_journeycharter_credentials() {
   kli saidify --file "${ELAYNE_CHARTER_EDGE}"
 
   log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyCharter Credential to ${YELLO}${LIBRARIAN_ALIAS}${EC}"
-  kli vc issue --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
+  kli vc create --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} \
     --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" \
     --recipient "${ELAYNE_PREFIX}" \
     --data @"${ATHENA_DIR}"/credential_data/journey-charter-data-elayne.json \
     --edges @"${ELAYNE_CHARTER_EDGE}" \
     --rules @"${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
+  CRED_SAID=$(kli vc list --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" --issued --said)
+  log "Grant ${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues (IPEX GRANT)${EC} JourneyCharter Credential said ${CRED_SAID} to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
+  kli ipex grant --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} \
+    --said ${CRED_SAID} --recipient ${ELAYNE_PREFIX}
 
-  kli vc list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --schema "${JOURNEY_CHARTER_SCHEMA_SAID}" --poll
-}
+  IPEX_GRANT=$(kli ipex list --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --type grant --poll --said | tail -1)
+  kli ipex admit --name ${LIBRARIAN_KEYSTORE} --alias ${LIBRARIAN_ALIAS} --said ${IPEX_GRANT}
+  ADMIT=$(kli ipex list --name "${LIBRARIAN_KEYSTORE}" --alias "${LIBRARIAN_ALIAS}" --type admit --sent --poll --said | tail -1)
+  wait_for_ipex_message "${WISEMAN_KEYSTORE}" "${WISEMAN_ALIAS}" "admit" "${ADMIT}"
+  log "${MAGNT}${LIBRARIAN_ALIAS}${EC} ${GREEN}sees${EC} JourneyCharter Credential"
+  wait_for_credentials "${LIBRARIAN_KEYSTORE}" "${LIBRARIAN_ALIAS}" "${JOURNEY_CHARTER_SCHEMA_SAID}" ${CRED_SAID}
 
-function issue_journeycharter_credentials_agent() {
-  log "${BLGRY}Issue JourneyCharter credentials${EC}"
-  # Same rules used for both Richard and Elayne
-  kli saidify --file "${ATHENA_DIR}"/credential_rules/journey-charter-rules.json
-  CHARTER_RULES=$(cat "${ATHENA_DIR}"/credential_rules/journey-charter-rules.json)
-  CHARTER_EDGE_FILTER=${ATHENA_DIR}/credential_edges/journey-charter-edge-filter.jq
-
-  # Richard
-  log "Prepare ${YELLO}Richard's${EC} JourneyMark and TreasureHuntingJourney edges."
-  RICHARD_CHARTER_EDGE=${ATHENA_DIR}/credential_edges/richard-charter-edges.json
-  EXPLORER_MARK_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${JOURNEY_MARK_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  EXPLORER_JOURNEY_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  # shellcheck disable=SC2005 disable=SC2086
-  echo "$(jq --null-input \
-    --arg mark_said ${EXPLORER_MARK_CRED_SAID} --arg mark_schema ${JOURNEY_MARK_SCHEMA_SAID} \
-    --arg journey_said ${EXPLORER_JOURNEY_CRED_SAID} --arg journey_schema ${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID} \
-    -f ${CHARTER_EDGE_FILTER})" >"${RICHARD_CHARTER_EDGE}"
-  #  kli saidify --file "${RICHARD_CHARTER_EDGE}"
-
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyCharter Credential to ${YELLO}${EXPLORER_ALIAS}${EC}"
-  RICHARD_CHARTER_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-charter-data-richard.json)
-  RICHARD_CHARTER_EDGE_DATA=$(cat "${RICHARD_CHARTER_EDGE}")
-  curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${RICHARD_CHARTER_DATA},
-         \"recipient\":\"${RICHARD_PREFIX}\",
-         \"registry\":\"${WISEMAN_REGISTRY}\",
-         \"schema\":\"${JOURNEY_CHARTER_SCHEMA_SAID}\",
-         \"source\":${RICHARD_CHARTER_EDGE_DATA},
-         \"rules\":${CHARTER_RULES}}" | jq '.d' | tr -d '"'
-  sleep 10
-
-  EXPLORER_CHARTER_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${JOURNEY_CHARTER_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  log "Explorer show JourneyCharter credential SAID: ${YELLO}${EXPLORER_CHARTER_CRED_SAID}${EC}"
-  sleep 1
-  log ""
-
-  # Elayne
-  log "Prepare ${MAGNT}Elayne's${EC} JourneyMark and TreasureHuntingJourney edges."
-  ELAYNE_CHARTER_EDGE=${ATHENA_DIR}/credential_edges/elayne-charter-edges.json
-  LIBRARIAN_MARK_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${JOURNEY_MARK_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  LIBRARIAN_JOURNEY_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  # shellcheck disable=SC2005 disable=SC2086
-  echo "$(jq --null-input \
-    --arg mark_said ${LIBRARIAN_MARK_CRED_SAID} --arg mark_schema ${JOURNEY_MARK_SCHEMA_SAID} \
-    --arg journey_said ${LIBRARIAN_JOURNEY_CRED_SAID} --arg journey_schema ${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID} \
-    -f ${CHARTER_EDGE_FILTER})" >"${ELAYNE_CHARTER_EDGE}"
-
-  log "${LCYAN}${WISEMAN_ALIAS}${EC} ${GREEN}issues${EC} JourneyCharter Credential to ${MAGNT}${LIBRARIAN_ALIAS}${EC}"
-  ELAYNE_CHARTER_DATA=$(cat "${ATHENA_DIR}"/credential_data/journey-charter-data-elayne.json)
-  ELAYNE_CHARTER_EDGE_DATA=$(cat "${ELAYNE_CHARTER_EDGE}")
-  curl -s -X POST "${WISEMAN_AGENT_URL}/credentials/${WISEMAN_ALIAS}" -H "accept: application/json" -H "Content-Type: application/json" \
-    -d "{\"credentialData\":${ELAYNE_CHARTER_DATA},
-         \"recipient\":\"${ELAYNE_PREFIX}\",
-         \"registry\":\"${WISEMAN_REGISTRY}\",
-         \"schema\":\"${JOURNEY_CHARTER_SCHEMA_SAID}\",
-         \"source\":${ELAYNE_CHARTER_EDGE_DATA},
-         \"rules\":${CHARTER_RULES}}" | jq '.d' | tr -d '"'
-  sleep 5
-
-  LIBRARIAN_CHARTER_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${JOURNEY_CHARTER_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  sleep 1
-  log "Librarian show JourneyCharter credential SAID: ${MAGNT}${LIBRARIAN_CHARTER_CRED_SAID}${EC}"
   log ""
 }
 
 function issue_credentials() {
   log "${BLGRY}Issuing Credentials...${EC}"
   issue_treasurehuntingjourney_credentials
+#  issue_treasurehuntingjourney_elayne
   issue_journeymarkrequest_credentials
+#  issue_journeymarkrequest_elayne
   issue_journeymark_credentials
+#  issue_journeymark_elayne
   issue_journeycharter_credentials
+#  issue_journeycharter_elayne
   log "${BLGRN}Finished issuing credentials${EC}"
   log ""
-}
-
-function issue_credentials_agent() {
-  log "${BLGRY}Issuing Credentials${EC}"
-  issue_treasurehuntingjourney_credentials_agent
-  issue_journeymarkrequest_credentials_agent
-  issue_journeymark_credentials_agent
-  issue_journeycharter_credentials_agent
-  log "${BLGRN}Finished issuing credentials${EC}"
 }
 
 function start_webhook() {
@@ -1121,41 +999,10 @@ function present_credentials() {
   log "${BLGRN}Credential presentations finished${EC}"
 }
 
-function present_credentials_agent() {
-  log "${BLGRY}Presenting Credentials to the ${LTGRN}Gatekeeper${EC}"
-
-  log "Presenting ${YELLO}${EXPLORER_ALIAS}'s${EC} JourneyCharter ${LBLUE}credential${EC} to ${LTGRN}Gatekeeper${EC}"
-  EXPLORER_CHARTER_CRED_SAID=$(curl -s -X GET "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}?type=received&schema=${JOURNEY_CHARTER_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  curl -s -X POST "${EXPLORER_AGENT_URL}/credentials/${EXPLORER_ALIAS}/presentations" -H 'accept: */*' -H 'Content-Type: application/json' \
-    -d "{
-        \"recipient\": \"${GATEKEEPER_ALIAS}\",
-        \"said\": \"${EXPLORER_CHARTER_CRED_SAID}\",
-        \"schema\": \"${JOURNEY_CHARTER_SCHEMA_SAID}\",
-        \"include\": true
-    }"
-  sleep 11
-
-  log "Presenting ${MAGNT}${LIBRARIAN_ALIAS}'s${EC} JourneyCharter ${LBLUE}credential${EC} to ${LTGRN}Gatekeeper${EC}"
-  LIBRARIAN_CHARTER_CRED_SAID=$(curl -s -X GET "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}?type=received&schema=${JOURNEY_CHARTER_SCHEMA_SAID}" | jq '.[0] | .sad.d' | tr -d '"')
-  curl -s -X POST "${LIBRARIAN_AGENT_URL}/credentials/${LIBRARIAN_ALIAS}/presentations" -H 'accept: */*' -H 'Content-Type: application/json' \
-    -d "{
-        \"recipient\": \"${GATEKEEPER_ALIAS}\",
-        \"said\": \"${LIBRARIAN_CHARTER_CRED_SAID}\",
-        \"schema\": \"${JOURNEY_CHARTER_SCHEMA_SAID}\",
-        \"include\": true
-    }"
-  sleep 11
-}
-
 function revoke_credentials() {
   log "${BLRED}Revoking${EC} JourneyCharter for ${YELLO}Richard${EC}"
   RICHARD_JOURNEY_CHARTER_CRED_SAID=$(kli vc list --name ${EXPLORER_KEYSTORE} --alias ${EXPLORER_ALIAS} --said --schema ${JOURNEY_CHARTER_SCHEMA_SAID})
   kli vc revoke --name ${WISEMAN_KEYSTORE} --alias ${WISEMAN_ALIAS} --registry-name ${WISEMAN_REGISTRY} --said "${RICHARD_JOURNEY_CHARTER_CRED_SAID}" --send ${GATEKEEPER_ALIAS}
-}
-
-function revoke_credentials_agent() {
-  log "${BLRED}Revoking${EC} JourneyCharter for ${YELLO}Richard${EC}"
-
 }
 
 function check_dependencies() {
@@ -1183,7 +1030,7 @@ function check_dependencies() {
 }
 
 function waitloop() {
-  log "${LTGRN}Control-C${EC} to exit (will shut down witnesses, agents, and Gatekeeper  if started, and will clear .keri and .sally)"
+  log "${LTGRN}Control-C${EC} to exit (will shut down keystores, agents, and Gatekeeper  if started, and will clear .keri and .sally)"
   log ""
   quit=0
   while [ "$quit" -ne 1 ]; do
@@ -1196,32 +1043,6 @@ function cleanup() {
   # Clears out temporary directories $HOME/.sally and $HOME/.keri
   log ""
   log "${BLGRY}Shutting down services${EC}"
-
-  # Agents
-  if [ $EXPLORER_AGENT_PID != 99999 ]; then
-    log "${DGREY}Shutting down ${EXPLORER_KEYSTORE} agent${EC}"
-    kill $EXPLORER_AGENT_PID
-  else
-    log "${BLGRY}${EXPLORER_KEYSTORE} Agent not started${EC} so not shutting down"
-  fi
-  if [ $LIBRARIAN_AGENT_PID != 99999 ]; then
-    log "${DGREY}Shutting down ${LIBRARIAN_KEYSTORE} agent${EC}"
-    kill $LIBRARIAN_AGENT_PID
-  else
-    log "${BLGRY}${LIBRARIAN_KEYSTORE} Agent not started${EC} so not shutting down"
-  fi
-  if [ $WISEMAN_AGENT_PID != 99999 ]; then
-    log "${DGREY}Shutting down ${WISEMAN_KEYSTORE} agent${EC}"
-    kill $WISEMAN_AGENT_PID
-  else
-    log "${BLGRY}${WISEMAN_KEYSTORE} Agent not started${EC} so not shutting down"
-  fi
-  if [ $GATEKEEPER_AGENT_PID != 99999 ]; then
-    log "${DGREY}Shutting down ${GATEKEEPER_KEYSTORE} agent${EC}"
-    kill $GATEKEEPER_AGENT_PID
-  else
-    log "${BLGRY}${GATEKEEPER_KEYSTORE} Agent not started${EC} so not shutting down"
-  fi
 
   # Webhook
   if [ $GATEKEEPER_WEBHOOK_PID != 99999 ]; then
@@ -1239,14 +1060,6 @@ function cleanup() {
     log "${BLGRY}Sally not started${EC} so not shutting down"
   fi
 
-  # KERIA Server
-  if [ $KERIA_PID != 999999 ]; then
-    log "${DGREY}Shutting down KERIA Agent server${EC}"
-    kill $KERIA_PID
-  else
-    log "${BLGRY}KERIA not started${EC} so not shutting down"
-  fi
-
   # witness network
   if [ $DEMO_WITNESS_NETWORK_PID != 8888888 ]; then
     log "${DGREY}Shutting down witness network${EC}"
@@ -1255,7 +1068,7 @@ function cleanup() {
     log "${BLGRY}Witness network not started${EC} so not shutting down."
   fi
 
-  # the three witnesses
+  # the three keystores
   if [ $WAN_WITNESS_PID != 99999 ]; then
     log "${DGREY}Shutting down wan witness${EC}"
     kill $WAN_WITNESS_PID
@@ -1307,36 +1120,30 @@ function clear_keystores() {
   rm -rfv "${HOME}"/.sally
 }
 
-function agents_and_services_flow() {
-  # This flow is for experimenting with the Postman REST Collection
-  # Remember to start the Gatekeeper Manually when using this flow
-  start_vlei_server
-  create_witnesses_if_not_exists
-  start_witnesses
-  read_witness_prefixes_and_configure
-  start_agents
-  start_webhook
-  keria_stuff
-  log "${BLRED}REMEMBER TO START THE GATEKEEPER MANUALLY AFTER INITIALIZING THE GATEKEEPER KEYSTORE!${EC}"
-}
-
-function agent_flow() {
-  start_vlei_server
-  start_webhook
+function main_kli_flow() {
+  # The main flow for using the KLI
+  # Start Here for understanding
+  start_vlei_server # Schema and Credential caching server
 
   create_witnesses
+  migrate_witnesses
   start_witnesses
   read_witness_prefixes_and_configure
 
-  start_agents
-  make_keystores_and_incept_agent
+  make_keystores
+  migrate_keystores
+  incept_ids
+  read_prefixes_kli
   start_gatekeeper_server
+  start_webhook
 
-  make_introductions_agent
-  create_credential_registries_agent
+  make_introductions_kli
+  # resolve_credential_oobis - not needed
 
-  issue_credentials_agent
-  present_credentials_agent
+  create_credential_registries
+  issue_credentials
+  exit 0
+  present_credentials
 }
 
 function services_only_flow() {
@@ -1347,47 +1154,10 @@ function services_only_flow() {
   read_witness_prefixes_and_configure
 
   read_prefixes_kli
-  start_agents
   start_gatekeeper_server
   start_webhook
 
   # place next item here
-#  issue_credentials
-  keria_stuff
-}
-
-function main_kli_flow() {
-  # The main flow for using the KLI
-  # Start Here for understanding
-  start_vlei_server # Schema and Credential caching server
-
-  create_witnesses
-  start_witnesses
-  read_witness_prefixes_and_configure
-
-  make_keystores_and_incept_kli
-  read_prefixes_kli
-#  start_agents
-  start_gatekeeper_server
-  start_webhook
-  keria_stuff
-
-  make_introductions_kli
-  # resolve_credential_oobis - not needed
-
-  create_credential_registries
-  issue_credentials
-  present_credentials
-}
-
-function keria_stuff() {
-  log ""
-#  log "${BLGRY}Starting KERIA to listen for presentation events${EC}"
-#  keria start --config-file ${CONTROLLER_BOOTSTRAP_FILE} --config-dir ${CONFIG_DIR} &
-#  KERIA_PID=$!
-#  waitfor localhost:3901 -t 1
-#  log "${BLGRN}KERIA started${EC}"
-  log ""
 }
 
 function main() {
@@ -1397,18 +1167,11 @@ function main() {
   generate_credential_schemas
   read_schema_saids
 
-  if [ -n "$SERVICES_ONLY" ] && [ "$AGENTS" = true ]; then
-    agents_and_services_flow
-  elif [ "$AGENTS" = true ]; then
-    log "agents setup"
-    agent_flow
-  elif [ -n "$SERVICES_ONLY" ]; then
+  if [ -n "$SERVICES_ONLY" ]; then
     services_only_flow
   else
     main_kli_flow
   fi
-
-
 
   log "${LBLUE}Let your Journey begin${EC}!"
   waitloop
@@ -1418,14 +1181,14 @@ trap cleanup SIGTERM EXIT
 
 while getopts "h:v:s:a:c:" option; do
   case $option in
-  c)
-    CLEAR_KEYSTORES=true
-    log "CLEAR_KEYSTORES set to true"
-    ;;
   h)
     log "Abydos workflow script"
     log "workflow.sh [-v VERBOSE] [-h HELP] [-s SERVICES_ONLY] [-a AGENTS]"
     exit
+    ;;
+  c)
+    CLEAR_KEYSTORES=true
+    log "CLEAR_KEYSTORES set to true"
     ;;
   v)
     VERBOSE=true
@@ -1434,10 +1197,6 @@ while getopts "h:v:s:a:c:" option; do
   s)
     SERVICES_ONLY=true
     log "SERVICES_ONLY set to true"
-    ;;
-  a)
-    AGENTS=true
-    log "Using Agents rather than the KLI to manage keystores"
     ;;
   \?)
     log "Invalid option $option"
