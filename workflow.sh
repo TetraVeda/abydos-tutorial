@@ -73,15 +73,15 @@ GATEKEEPER_SALT=0ACDXyMzq1Nxc4OWxtbm9fle
 ##### Prefixes #####
 # these values start empty and are written to in later from the read_aliases function
 # Participants
-RICHARD_PREFIX=
-ELAYNE_PREFIX=
-WISEMAN_PREFIX=
-GATEKEEPER_PREFIX=
+RICHARD_PREFIX="EJS0-vv_OPAQCdJLmkd5dT0EW-mOfhn_Cje4yzRjTv8q"
+ELAYNE_PREFIX="EDRVwkL_Y1iGyOqOFUTc1j8msCxyqvlyToTRdjVdLsOi"
+WISEMAN_PREFIX="EIaJ5gpHSL9nl1XIWDkfMth1uxbD-AfLkqdiZL6S7HkZ"
+GATEKEEPER_PREFIX="EMHY2SRWuqcqlKv2tNQ9nBXyZYqhJ-qrDX70faMcGujF"
 
 # Witnesses
-WAN_PREFIX=
-WES_PREFIX=
-WIL_PREFIX=
+WAN_PREFIX="BBilc4-L3tFUnfM_wJr4S4OJanAv_VmF_dJNN6vkf2Ha"
+WES_PREFIX="BLskRTInXnMxWaGqcpSyMgo0nYbalW99cGZESrz3zapM"
+WIL_PREFIX="BIKKuvBwpmDVA4Ds-EpL5bt9OqPzWPja2LigFYZN2YfX"
 
 # Config files and directories
 ATHENA_DIR=${LOCAL_DIR}/athena
@@ -136,10 +136,10 @@ WISEMAN_AGENT_URL=http://127.0.0.1:${WISEMAN_AGENT_HTTP_PORT}
 GATEKEEPER_AGENT_URL=http://127.0.0.1:${GATEKEEPER_AGENT_HTTP_PORT}
 
 # Credential SAID variables - needed for issuance
-TREASURE_HUNTING_JOURNEY_SCHEMA_SAID=""
-JOURNEY_MARK_REQUEST_SCHEMA_SAID=""
-JOURNEY_MARK_SCHEMA_SAID=""
-JOURNEY_CHARTER_SCHEMA_SAID=""
+TREASURE_HUNTING_JOURNEY_SCHEMA_SAID="EIxAox3KEhiQ_yCwXWeriQ3ruPWbgK94NDDkHAZCuP9l"
+JOURNEY_MARK_REQUEST_SCHEMA_SAID="ELc8tMg_hhsAPfVbjUBBC-giEy5440oSb9EzFBZdAxHD"
+JOURNEY_MARK_SCHEMA_SAID="EBEefH4LNQswHSrXanb-3GbjCZK7I_UCL6BdD-zwJ4my"
+JOURNEY_CHARTER_SCHEMA_SAID="EBe93w-UFScnCoo45xwk0z7EXvJQ3ppgrkbGzrc6LfNZ"
 
 function waitfor() {
   # Utility function wrapper for the wait-for script
@@ -887,8 +887,8 @@ function issue_journeycharter_credentials() {
     --said --schema "${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID}" | awk 'NR==1{print $1; exit}')
   # shellcheck disable=SC2005 disable=SC2086
   echo "$(jq --null-input \
-    --arg mark_said ${EXPLORER_MARK_SAID} --arg mark_schema ${JOURNEY_MARK_SCHEMA_SAID} \
-    --arg journey_said ${EXPLORER_JOURNEY_SAID} --arg journey_schema ${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID} \
+    --arg mark_said ${EXPLORER_MARK_SAID} --arg mark_schema ${JOURNEY_MARK_SCHEMA_SAID} --arg mark_operator "NI2I" \
+    --arg journey_said ${EXPLORER_JOURNEY_SAID} --arg journey_schema ${TREASURE_HUNTING_JOURNEY_SCHEMA_SAID} --arg journey_operator "NI2I" \
     -f ${CHARTER_EDGE_FILTER})" >"${RICHARD_CHARTER_EDGE}"
   kli saidify --file "${RICHARD_CHARTER_EDGE}"
 
@@ -963,14 +963,15 @@ function issue_journeycharter_elayne() {
 
 function issue_credentials() {
   log "${BLGRY}Issuing Credentials...${EC}"
+  # Disabling elayne's issuance right now because it intermittently fails
   issue_treasurehuntingjourney_credentials
-#  issue_treasurehuntingjourney_elayne
+  # issue_treasurehuntingjourney_elayne
   issue_journeymarkrequest_credentials
-#  issue_journeymarkrequest_elayne
+  # issue_journeymarkrequest_elayne
   issue_journeymark_credentials
-#  issue_journeymark_elayne
+  # issue_journeymark_elayne
   issue_journeycharter_credentials
-#  issue_journeycharter_elayne
+  # issue_journeycharter_elayne
   log "${BLGRN}Finished issuing credentials${EC}"
   log ""
 }

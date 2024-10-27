@@ -100,12 +100,18 @@
                                     "description": "SAID of JourneyMark ACDC schema",
                                     "type": "string",
                                     "const": ""
+                                },
+                                "o": {
+                                    "description": "Edge operator type - I2I, NI2I, or NOT",
+                                    "type": "string",
+                                    "const": "NI2I"
                                 }
                             },
                             "additionalProperties": false,
                             "required": [
                                 "n",
-                                "s"
+                                "s",
+                                "o"
                             ]
                         },
                         "journey": {
@@ -120,12 +126,18 @@
                                     "description": "SAID of TreasureHuntingJourney ACDC schema",
                                     "type": "string",
                                     "const": ""
+                                },
+                                "o": {
+                                    "description": "Edge operator type - I2I, NI2I, or NOT",
+                                    "type": "string",
+                                    "const": "NI2I"
                                 }
                             },
                             "additionalProperties": false,
                             "required": [
                                 "n",
-                                "s"
+                                "s",
+                                "o"
                             ]
                         }
                     },
