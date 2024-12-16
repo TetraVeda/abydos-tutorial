@@ -15,6 +15,17 @@ This is the companion repository for the *KERI Tutorial Series: Treasure Hunting
 
 ## Dependencies
 
+| Project       | Version  |
+|---------------|----------|
+| libsodium.org | ^1.0.18  |
+| python.org    | ^3.11.2  |
+| rust-lang.org | ^1.65.0  |
+
+One approach is to run the following command in this directory,
+which will start a temporary shell with those basic tools
+but will not make permanent changes to your machine: `sh <(curl tea.xyz) -E sh`
+(We recommend installing [tea](tea.xyz) but it is not necessary.)
+
 - [kaslcred](https://pypi.org/project/kaslcred/) for generation of schemas
 - [vLEI server (vLEI-server)](https://github.com/WebOfTrust/vLEI)
 - [sally](https://github.com/kentbull/sally)
